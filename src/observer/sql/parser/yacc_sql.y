@@ -89,6 +89,10 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         STRING_T
         FLOAT_T
         VECTOR_T
+        IS
+        NULL
+        NULLABLE
+        NOT
         HELP
         EXIT
         DOT //QUOTE
@@ -364,6 +368,7 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = $4;
+      $$->nullable=false;
     }
     | ID type
     {
@@ -371,6 +376,39 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = 4;
+      $$->nullable=false;
+    }
+    | ID type LBRACE number RBRACE NOT NULL
+    {
+      $$=new AttrInfoSqlNode;
+      $$->type=(AttrType)$2;
+      $$->name = $1;
+      $$->length = $4;
+      $$->nullable=false;
+    }
+    | ID type LBRACE number RBRACE NULLABLE
+    {
+      $$=new AttrInfoSqlNode;
+      $$->type=(AttrType)$2;
+      $$->name = $1;
+      $$->length = $4;
+      $$->nullable=true;
+    }
+    | ID type NOT NULL
+    {
+      $$=new AttrInfoSqlNode;
+      $$->type=(AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->nullable=false;
+    }
+    | ID type NULLABLE
+    {
+      $$=new AttrInfoSqlNode;
+      $$->type=(AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->nullable=true;
     }
     ;
 number:
@@ -445,6 +483,9 @@ value:
       char *tmp = common::substr($1,1,strlen($1)-2);
       $$ = new Value(tmp);
       free(tmp);
+    }
+    |NULL{
+      $$=new Value("",0,true);
     }
     ;
 storage_format:

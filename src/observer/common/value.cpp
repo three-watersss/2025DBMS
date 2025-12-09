@@ -26,7 +26,7 @@ Value::Value(float val) { set_float(val); }
 
 Value::Value(bool val) { set_boolean(val); }
 
-Value::Value(const char *s, int len /*= 0*/) { set_string(s, len); }
+Value::Value(const char *s, int len ,bool is_null/*= 0*/) { set_string(s, len,is_null); }
 
 Value::Value(const string_t& s) { set_string(s.data(), s.size()); }
 
@@ -36,6 +36,7 @@ Value::Value(const Value &other)
   this->attr_type_ = other.attr_type_;
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
+  this->is_null_   = other.is_null_;
   switch (this->attr_type_) {
     case AttrType::CHARS: {
       set_string_from_other(other);
@@ -52,6 +53,7 @@ Value::Value(Value &&other)
   this->attr_type_ = other.attr_type_;
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
+  this->is_null_   = other.is_null_;
   this->value_     = other.value_;
   other.own_data_  = false;
   other.length_    = 0;
@@ -66,6 +68,7 @@ Value &Value::operator=(const Value &other)
   this->attr_type_ = other.attr_type_;
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
+  this->is_null_   = other.is_null_;
   switch (this->attr_type_) {
     case AttrType::CHARS: {
       set_string_from_other(other);
@@ -87,6 +90,7 @@ Value &Value::operator=(Value &&other)
   this->attr_type_ = other.attr_type_;
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
+  this->is_null_   = other.is_null_;
   this->value_     = other.value_;
   other.own_data_  = false;
   other.length_    = 0;
@@ -108,6 +112,7 @@ void Value::reset()
   attr_type_ = AttrType::UNDEFINED;
   length_    = 0;
   own_data_  = false;
+  is_null_   = false;
 }
 
 void Value::set_data(char *data, int length)
@@ -157,10 +162,16 @@ void Value::set_boolean(bool val)
   length_            = sizeof(val);
 }
 
-void Value::set_string(const char *s, int len /*= 0*/)
+void Value::set_string(const char *s, int len,bool is_null /*= 0*/)
 {
   reset();
   attr_type_ = AttrType::CHARS;
+  if (is_null)  // 是 NULL，空值，attr_type_ 暂时设置成 UNDEFINED。内容暂时不初始化
+  {
+    is_null_   = true;
+    attr_type_ = AttrType::UNDEFINED;
+    return;
+  }
   if (s == nullptr) {
     value_.pointer_value_ = nullptr;
     length_               = 0;
@@ -177,6 +188,36 @@ void Value::set_string(const char *s, int len /*= 0*/)
     value_.pointer_value_[len] = '\0';
   }
 }
+
+void Value::set_null_value()  // 设置 value 为 NULL 时 value_ 中的值（要设置成一些正常用户不会输入的值）
+{
+  switch (attr_type_) {
+    case AttrType::TEXTS:
+    case AttrType::CHARS: {
+      char s[]              = "NUL\1";
+      int  len              = strlen(s);
+      value_.pointer_value_ = new char[len + 1];
+      length_               = len;
+      memcpy(value_.pointer_value_, s, len);
+      value_.pointer_value_[len] = '\0';
+    } break;
+    case AttrType::DATES:
+    case AttrType::INTS: {
+      value_.int_value_ = INT32_MAX;  // WARN: 这里 INT32_MAX 本应该是一个合法 INT 输入，但是也没有别的办法了。。。
+      length_ = sizeof(INT32_MAX);
+    } break;
+    case AttrType::FLOATS: {
+      value_.float_value_ = std::nanf("");
+      length_             = sizeof(std::nanf(""));
+    } break;
+    // case AttrType::BOOLEANS: { // bool 类型目前没有 UNKNOWN 值，所以无法支持
+    default: {
+      LOG_WARN("unknown data type: %d", attr_type_);
+    } break;
+  }
+}
+
+void Value::set_is_null(bool is_null) { is_null_ = is_null; }
 
 void Value::set_empty_string(int len)
 {
@@ -349,3 +390,5 @@ bool Value::get_boolean() const
   }
   return false;
 }
+
+bool Value::is_null() const { return is_null_; }

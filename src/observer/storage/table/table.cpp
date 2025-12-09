@@ -230,11 +230,22 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
     const Value &    value = values[i];
     if (field->type() != value.attr_type()) {
       Value real_value;
-      rc = Value::cast_to(value, field->type(), real_value);
-      if (OB_FAIL(rc)) {
-        LOG_WARN("failed to cast value. table name:%s,field name:%s,value:%s ",
-            table_meta_.name(), field->name(), value.to_string().c_str());
-        break;
+      if (value.is_null())  // 插入的是一个空值
+      {
+        if (not field->nullable()) {  // 所在列不允许插入空值
+          rc = RC::NULL_CANT_INSERT;
+          break;
+        }
+        real_value = value;
+        real_value.set_type(field->type());  // 设置空值对应的类型
+        real_value.set_null_value();
+      } else {
+        rc = Value::cast_to(value, field->type(), real_value);
+        if (OB_FAIL(rc)) {
+          LOG_WARN("failed to cast value. table name:%s,field name:%s,value:%s ",
+              table_meta_.name(), field->name(), value.to_string().c_str());
+          break;
+        }
       }
       rc = set_value_to_record(record_data, real_value, field);
     } else {

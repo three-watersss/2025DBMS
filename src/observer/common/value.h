@@ -46,7 +46,7 @@ public:
   explicit Value(int val);
   explicit Value(float val);
   explicit Value(bool val);
-  explicit Value(const char *s, int len = 0);
+  explicit Value(const char *s, int len = 0,bool is_null=false);
   explicit Value(const string_t &val);
 
   Value(const Value &other);
@@ -92,6 +92,7 @@ public:
   void set_data(const char *data, int length) { this->set_data(const_cast<char *>(data), length); }
   void set_value(const Value &value);
   void set_boolean(bool val);
+  void set_null_value();
 
   string to_string() const;
 
@@ -112,11 +113,13 @@ public:
   string   get_string() const;
   string_t get_string_t() const;
   bool     get_boolean() const;
+  bool     is_null() const;
+  void     set_is_null(bool is_null);
 
 public:
   void set_int(int val);
   void set_float(float val);
-  void set_string(const char *s, int len = 0);
+  void set_string(const char *s, int len = 0,bool is_null=false);
   void set_empty_string(int len);
   void set_string_from_other(const Value &other);
 
@@ -134,4 +137,6 @@ private:
 
   /// 是否申请并占有内存, 目前对于 CHARS 类型 own_data_ 为true, 其余类型 own_data_ 为false
   bool own_data_ = false;
+  /// 是否为null值
+  bool is_null_ = false;
 };

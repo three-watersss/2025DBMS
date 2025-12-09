@@ -198,6 +198,33 @@ public:
     cell.reset();
     cell.set_type(field_meta->type());
     cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    switch (field_meta->type()) {
+      case AttrType::INTS:
+      case AttrType::DATES:
+        if (cell.get_int() == INT32_MAX) {
+          cell.set_is_null(true);
+        } else {
+          cell.set_is_null(false);
+        }
+        break;
+      case AttrType::FLOATS:
+        if (cell.get_float() == std::nanf("")) {
+          cell.set_is_null(true);
+        } else {
+          cell.set_is_null(false);
+        }
+        break;
+      case AttrType::TEXTS:
+      case AttrType::CHARS:
+        if (strcmp(cell.get_string().c_str(), "NUL\1") == 0) {
+          cell.set_is_null(true);
+        } else {
+          cell.set_is_null(false);
+        }
+        break;
+      default: break;
+    }
+    
     return RC::SUCCESS;
   }
 

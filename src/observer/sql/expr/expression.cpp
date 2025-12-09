@@ -142,32 +142,57 @@ ComparisonExpr::~ComparisonExpr() {}
 RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &result) const
 {
   RC  rc         = RC::SUCCESS;
-  int cmp_result = left.compare(right);
+  bool null_exist = left.is_null() || right.is_null();
   result         = false;
-  switch (comp_) {
-    case EQUAL_TO: {
-      result = (0 == cmp_result);
-    } break;
-    case LESS_EQUAL: {
-      result = (cmp_result <= 0);
-    } break;
-    case NOT_EQUAL: {
-      result = (cmp_result != 0);
-    } break;
-    case LESS_THAN: {
-      result = (cmp_result < 0);
-    } break;
-    case GREAT_EQUAL: {
-      result = (cmp_result >= 0);
-    } break;
-    case GREAT_THAN: {
-      result = (cmp_result > 0);
-    } break;
-    default: {
-      LOG_WARN("unsupported comparison. %d", comp_);
-      rc = RC::INTERNAL;
-    } break;
+  if(null_exist){
+    switch(comp_){
+      case EQUAL_TO:
+      case NOT_EQUAL:
+      case LESS_EQUAL:
+      case GREAT_EQUAL:
+      case LESS_THAN:
+      case GREAT_THAN:{
+        result = false;
+      }break;
+      case IS_NOT: {
+        result = not(left.is_null() and right.is_null());
+      } break;
+      case IS: {
+        result = (left.is_null() and right.is_null());
+      } break;
+      default: {
+        LOG_WARN("unsupported comparison. %d", comp_);
+        rc = RC::INTERNAL;
+      } break;
+    }
+  }else{
+    int cmp_result = left.compare(right);
+    switch (comp_) {
+      case EQUAL_TO: {
+        result = (0 == cmp_result);
+      } break;
+      case LESS_EQUAL: {
+        result = (cmp_result <= 0);
+      } break;
+      case NOT_EQUAL: {
+        result = (cmp_result != 0);
+      } break;
+      case LESS_THAN: {
+        result = (cmp_result < 0);
+      } break;
+      case GREAT_EQUAL: {
+        result = (cmp_result >= 0);
+      } break;
+      case GREAT_THAN: {
+        result = (cmp_result > 0);
+      } break;
+      default: {
+        LOG_WARN("unsupported comparison. %d", comp_);
+        rc = RC::INTERNAL;
+      } break;
+    }
   }
+  
 
   return rc;
 }

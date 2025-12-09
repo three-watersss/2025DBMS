@@ -51,7 +51,9 @@ enum CompOp
   LESS_THAN,    ///< "<"
   GREAT_EQUAL,  ///< ">="
   GREAT_THAN,   ///< ">"
-  NO_OP
+  NO_OP,
+  IS,           ///< is null
+  IS_NOT        ///< is not null
 };
 
 /**
@@ -146,6 +148,7 @@ struct AttrInfoSqlNode
   AttrType type;    ///< Type of attribute
   string   name;    ///< Attribute name
   size_t   length;  ///< Length of attribute
+  bool     nullable;///< 是否可以为空
 };
 
 /**

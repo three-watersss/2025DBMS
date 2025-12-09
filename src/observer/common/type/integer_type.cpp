@@ -93,6 +93,11 @@ RC IntegerType::set_value_from_str(Value &val, const string &data) const
 
 RC IntegerType::to_string(const Value &val, string &result) const
 {
+  if (val.is_null()) // 空值展示
+  {
+    result = "NULL";
+    return RC::SUCCESS;
+  }
   stringstream ss;
   ss << val.value_.int_value_;
   result = ss.str();
