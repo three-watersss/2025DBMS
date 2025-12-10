@@ -58,6 +58,7 @@ bool ValueExpr::equal(const Expression &other) const
   const auto &other_value_expr = static_cast<const ValueExpr &>(other);
   return value_.compare(other_value_expr.get_value()) == 0;
 }
+bool ValueExpr::is_null() const { return value_.is_null(); }
 
 RC ValueExpr::get_value(const Tuple &tuple, Value &value) const
 {
@@ -154,10 +155,10 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
       case GREAT_THAN:{
         result = false;
       }break;
-      case IS_NOT: {
+      case CompOp_IS_NOT: {
         result = not(left.is_null() and right.is_null());
       } break;
-      case IS: {
+      case CompOp_IS: {
         result = (left.is_null() and right.is_null());
       } break;
       default: {

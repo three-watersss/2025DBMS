@@ -90,7 +90,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         FLOAT_T
         VECTOR_T
         IS
-        NULL
+        NUL
         NULLABLE
         NOT
         HELP
@@ -378,7 +378,7 @@ attr_def:
       $$->length = 4;
       $$->nullable=false;
     }
-    | ID type LBRACE number RBRACE NOT NULL
+    | ID type LBRACE number RBRACE NOT NUL
     {
       $$=new AttrInfoSqlNode;
       $$->type=(AttrType)$2;
@@ -394,7 +394,7 @@ attr_def:
       $$->length = $4;
       $$->nullable=true;
     }
-    | ID type NOT NULL
+    | ID type NOT NUL
     {
       $$=new AttrInfoSqlNode;
       $$->type=(AttrType)$2;
@@ -484,7 +484,7 @@ value:
       $$ = new Value(tmp);
       free(tmp);
     }
-    |NULL{
+    |NUL{
       $$=new Value("",0,true);
     }
     ;

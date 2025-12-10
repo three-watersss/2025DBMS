@@ -52,8 +52,8 @@ enum CompOp
   GREAT_EQUAL,  ///< ">="
   GREAT_THAN,   ///< ">"
   NO_OP,
-  IS,           ///< is null
-  IS_NOT        ///< is not null
+  CompOp_IS,           ///< is null
+  CompOp_IS_NOT        ///< is not null
 };
 
 /**

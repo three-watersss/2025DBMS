@@ -12,6 +12,10 @@ See the Mulan PSL v2 for more details. */
 // Created by WangYunlai on 2023/06/28.
 //
 
+#include <cmath>
+#include <limits>
+
+
 #include "common/value.h"
 
 #include "common/lang/comparator.h"
@@ -192,7 +196,7 @@ void Value::set_string(const char *s, int len,bool is_null /*= 0*/)
 void Value::set_null_value()  // 设置 value 为 NULL 时 value_ 中的值（要设置成一些正常用户不会输入的值）
 {
   switch (attr_type_) {
-    case AttrType::TEXTS:
+    //case AttrType::TEXTS:
     case AttrType::CHARS: {
       char s[]              = "NUL\1";
       int  len              = strlen(s);
@@ -201,14 +205,14 @@ void Value::set_null_value()  // 设置 value 为 NULL 时 value_ 中的值（�
       memcpy(value_.pointer_value_, s, len);
       value_.pointer_value_[len] = '\0';
     } break;
-    case AttrType::DATES:
+    //case AttrType::DATES:
     case AttrType::INTS: {
       value_.int_value_ = INT32_MAX;  // WARN: 这里 INT32_MAX 本应该是一个合法 INT 输入，但是也没有别的办法了。。。
       length_ = sizeof(INT32_MAX);
     } break;
     case AttrType::FLOATS: {
-      value_.float_value_ = std::nanf("");
-      length_             = sizeof(std::nanf(""));
+      value_.float_value_ = std::numeric_limits<float>::quiet_NaN();
+      length_             = sizeof(float);
     } break;
     // case AttrType::BOOLEANS: { // bool 类型目前没有 UNKNOWN 值，所以无法支持
     default: {

@@ -14,6 +14,9 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <cmath>
+
+
 #include "common/log/log.h"
 #include "sql/expr/expression.h"
 #include "sql/expr/tuple_cell.h"
@@ -200,7 +203,7 @@ public:
     cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
     switch (field_meta->type()) {
       case AttrType::INTS:
-      case AttrType::DATES:
+      //case AttrType::DATES:
         if (cell.get_int() == INT32_MAX) {
           cell.set_is_null(true);
         } else {
@@ -208,13 +211,13 @@ public:
         }
         break;
       case AttrType::FLOATS:
-        if (cell.get_float() == std::nanf("")) {
+        if (std::isnan(cell.get_float())) {
           cell.set_is_null(true);
         } else {
           cell.set_is_null(false);
         }
         break;
-      case AttrType::TEXTS:
+      //case AttrType::TEXTS:
       case AttrType::CHARS:
         if (strcmp(cell.get_string().c_str(), "NUL\1") == 0) {
           cell.set_is_null(true);

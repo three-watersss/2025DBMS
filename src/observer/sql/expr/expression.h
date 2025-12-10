@@ -39,7 +39,7 @@ enum class ExprType
   STAR,                 ///< 星号，表示所有字段
   UNBOUND_FIELD,        ///< 未绑定的字段，需要在resolver阶段解析为FieldExpr
   UNBOUND_AGGREGATION,  ///< 未绑定的聚合函数，需要在resolver阶段解析为AggregateExpr
-
+  IS_NULL,              ///< is null / is not null
   FIELD,        ///< 字段。在实际执行时，根据行数据内容提取对应字段的值
   VALUE,        ///< 常量值
   CAST,         ///< 需要做类型转换的表达式
@@ -78,6 +78,10 @@ public:
    * @brief 判断两个表达式是否相等
    */
   virtual bool equal(const Expression &other) const { return false; }
+  /**
+   * @brief 判断表达式结果是否为 NULL
+   */
+  virtual bool is_null() const { return false; }
   /**
    * @brief 根据具体的tuple，来计算当前表达式的值。tuple有可能是一个具体某个表的行数据
    */
@@ -234,6 +238,7 @@ public:
   virtual ~ValueExpr() = default;
 
   bool equal(const Expression &other) const override;
+  bool is_null() const override;
 
   unique_ptr<Expression> copy() const override { return make_unique<ValueExpr>(value_); }
 
