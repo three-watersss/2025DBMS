@@ -166,7 +166,8 @@ RC LogicalPlanGenerator::create_plan(FilterStmt *filter_stmt, unique_ptr<Logical
                                      ? static_cast<Expression *>(new FieldExpr(filter_obj_right.field))
                                      : static_cast<Expression *>(new ValueExpr(filter_obj_right.value)));
     bool null_exist = left->is_null() || right->is_null();
-    if (null_exist && left->value_type() != right->value_type()) {
+    // 对于 IS / IS NOT NULL 或任一端为 NULL，不做类型强转，直接用 NULL 判定
+    if (!null_exist && left->value_type() != right->value_type()) {
       auto left_to_right_cost = implicit_cast_cost(left->value_type(), right->value_type());
       auto right_to_left_cost = implicit_cast_cost(right->value_type(), left->value_type());
       if (left_to_right_cost <= right_to_left_cost && left_to_right_cost != INT32_MAX) {

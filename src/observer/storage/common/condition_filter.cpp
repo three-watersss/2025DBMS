@@ -99,6 +99,14 @@ RC DefaultConditionFilter::init(Table &table, const ConditionSqlNode &condition)
     right.value   = condition.right_value;
     type_right    = condition.right_value.attr_type();
 
+    // 针对 IS / IS NOT NULL，将右值类型对齐到左值并标记为 null，避免类型校验失败
+    if ((condition.comp == CompOp_IS || condition.comp == CompOp_IS_NOT) && condition.right_value.is_null()) {
+      right.value.set_type(type_left);
+      right.value.set_null_value();
+      right.value.set_is_null(true);
+      type_right = type_left;
+    }
+
     right.attr_length = 0;
     right.attr_offset = 0;
   }
@@ -110,7 +118,7 @@ RC DefaultConditionFilter::init(Table &table, const ConditionSqlNode &condition)
   //  }
   // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
   // 但是选手们还是要实现。这个功能在预选赛中会出现
-  if (type_left != type_right) {
+  if (type_left != type_right && !(condition.comp == CompOp_IS || condition.comp == CompOp_IS_NOT)) {
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -136,6 +144,15 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     right_value.set_value(right_.value);
   }
 
+  const bool null_exist = left_value.is_null() || right_value.is_null();
+  if (null_exist) {
+    switch (comp_op_) {
+      case CompOp_IS: return left_value.is_null() && right_value.is_null();
+      case CompOp_IS_NOT: return !(left_value.is_null() && right_value.is_null());
+      default: return false;  // 其它比较与 NULL 结果为 false
+    }
+  }
+
   int cmp_result = left_value.compare(right_value);
 
   switch (comp_op_) {
@@ -145,7 +162,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     case LESS_THAN: return cmp_result < 0;
     case GREAT_EQUAL: return cmp_result >= 0;
     case GREAT_THAN: return cmp_result > 0;
-
+    case CompOp_IS: return left_value.is_null() && right_value.is_null();
+    case CompOp_IS_NOT: return !(left_value.is_null() && right_value.is_null());
     default: break;
   }
 
