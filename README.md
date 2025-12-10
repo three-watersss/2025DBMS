@@ -100,3 +100,24 @@ MiniOB 采用 [木兰宽松许可证，第2版](https://license.coscl.org.cn/Mul
 # DEBUG
 - 服务端 gdb ./bin/observer -f ../etc/observer.ini -p 6789
 - 客户端 ./bin/obclient -p 6789
+
+
+# TEST
+- drop_table
+```bash
+CREATE TABLE test_drop_table(id int)
+SHOW TABLES
+DROP test_drop_table
+SHOW TABLES
+```
+- null
+```bash
+CREATE TABLE test_null_table(id int,weight float nullable,age int not null)
+SHOW TABLES
+INSERT INTO test_null_table VALUES(1,NULL,16)
+INSERT INTO test_null_table VALUES(2,50.5,18)
+INSERT INTO test_null_table VALUES(3,NULL,NULL)
+SELECT * FROM test_null_table where weight is null
+SELECT * FROM test_null_table where weight is not null
+DROP TABLE test_null_table
+```
