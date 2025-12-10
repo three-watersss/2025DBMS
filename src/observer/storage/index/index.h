@@ -52,7 +52,7 @@ public:
   virtual bool is_vector_index() { return false; }
 
   const IndexMeta &index_meta() const { return index_meta_; }
-
+  virtual RC drop(Table *table) = 0;
   /**
    * @brief 插入一条数据
    *

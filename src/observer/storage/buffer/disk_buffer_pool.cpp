@@ -838,6 +838,20 @@ RC BufferPoolManager::create_file(const char *file_name)
   return RC::SUCCESS;
 }
 
+RC BufferPoolManager::remove_file(const char *file_name)
+{
+  RC rc = close_file(file_name);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+
+  int remove_ret = 0;
+  if ((remove_ret = ::remove(file_name)) == -1)
+    ;
+
+  return rc;
+}
+
 RC BufferPoolManager::open_file(LogHandler &log_handler, const char *_file_name, DiskBufferPool *&_bp)
 {
   string file_name(_file_name);

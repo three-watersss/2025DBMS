@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/types.h"
 #include "common/lang/span.h"
 #include "common/lang/functional.h"
+#include <string>
 
 struct RID;
 class Record;
@@ -61,6 +62,12 @@ public:
   RC create(Db *db, int32_t table_id, const char *path, const char *name, const char *base_dir,
       span<const AttrInfoSqlNode> attributes, const vector<string> &primary_keys, StorageFormat storage_format,
       StorageEngine storage_engine);
+
+  /**
+   * 删除一个表
+   * @param path 元数据保存的文件(完整路径)
+   */
+  RC drop(Db *db, const char *path);
 
   /**
    * 打开一个表
@@ -134,9 +141,10 @@ public:
 private:
   Db       *db_ = nullptr;
   TableMeta table_meta_;
-  // DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
-  // RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
-  // vector<Index *>    indexes_;
+  DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
+  RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
+  vector<Index *>    indexes_;
   unique_ptr<TableEngine> engine_      = nullptr;
   LobFileHandler         *lob_handler_ = nullptr;
+  std::string             base_dir_;   /// 表数据与索引所在目录
 };

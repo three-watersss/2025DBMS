@@ -96,7 +96,8 @@ RC Table::create(Db *db, int32_t table_id, const char *path, const char *name, c
   table_meta_.serialize(fs);
   fs.close();
 
-  db_       = db;
+  db_        = db;
+  base_dir_  = base_dir;
 
   string             data_file = table_data_file(base_dir, name);
   BufferPoolManager &bpm       = db->buffer_pool_manager();
@@ -125,6 +126,66 @@ RC Table::create(Db *db, int32_t table_id, const char *path, const char *name, c
   return rc;
 }
 
+RC Table::drop(Db *db, const char *path)
+{
+  RC rc = RC::SUCCESS;
+
+  // 根据存储引擎做删除
+  if (table_meta_.storage_engine() == StorageEngine::HEAP) {
+    auto *heap_engine = dynamic_cast<HeapTableEngine *>(engine_.get());
+    if (heap_engine == nullptr) {
+      LOG_ERROR("Heap engine cast failed while dropping table %s", table_meta_.name());
+      return RC::INTERNAL;
+    }
+
+    // 删除索引文件
+    for (Index *index : heap_engine->indexes_) {
+      rc = index->drop(this);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to drop index. index name = %s", index->index_meta().name());
+        return rc;
+      }
+      delete index;
+    }
+    heap_engine->indexes_.clear();
+
+    // 关闭并释放记录处理器
+    if (heap_engine->record_handler_ != nullptr) {
+      heap_engine->record_handler_->close();
+      delete heap_engine->record_handler_;
+      heap_engine->record_handler_ = nullptr;
+    }
+
+    // 关闭数据文件并删除
+    BufferPoolManager &bpm       = db->buffer_pool_manager();
+    std::string data_file = table_data_file(base_dir_.c_str(), table_meta_.name());
+    rc                    = bpm.remove_file(data_file.c_str());
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to remove disk buffer pool of data file. file name=%s", data_file.c_str());
+      return rc;
+    }
+    heap_engine->data_buffer_pool_ = nullptr;  // 已由 bpm.remove_file 释放
+  } else if (table_meta_.storage_engine() == StorageEngine::LSM) {
+    LOG_WARN("drop LSM table is not implemented. table=%s", table_meta_.name());
+    return RC::UNIMPLEMENTED;
+  } else {
+    LOG_WARN("unsupported storage engine while drop table. engine=%d", static_cast<int>(table_meta_.storage_engine()));
+    return RC::UNSUPPORTED;
+  }
+
+  // destroy mata file
+  int remove_ret = remove(path);
+  if (remove_ret == -1) {
+    LOG_ERROR("Failed to remove mate file. file name=%s. error details: %s", path, strerror(errno));
+  }
+
+  // 删除 LOM
+  //lom_.drop();
+
+  return rc;
+}
+
+
 RC Table::open(Db *db, const char *meta_file, const char *base_dir)
 {
   // 加载元数据文件
@@ -143,6 +204,7 @@ RC Table::open(Db *db, const char *meta_file, const char *base_dir)
   fs.close();
 
   db_       = db;
+  base_dir_ = base_dir;
 
   // // 加载数据文件
   // RC rc = init_record_handler(base_dir);

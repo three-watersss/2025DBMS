@@ -904,6 +904,17 @@ RC BplusTreeHandler::create(LogHandler &log_handler,
   return RC::SUCCESS;
 }
 
+RC BplusTreeHandler::drop(BufferPoolManager &bpm)
+{
+  RC rc = RC::SUCCESS;
+
+  if (disk_buffer_pool_ != nullptr) {
+    rc = bpm.remove_file(disk_buffer_pool_->filename());
+  }
+  disk_buffer_pool_ = nullptr;
+  return rc;
+}
+
 RC BplusTreeHandler::open(LogHandler &log_handler, BufferPoolManager &bpm, const char *file_name)
 {
   if (disk_buffer_pool_ != nullptr) {

@@ -465,6 +465,10 @@ public:
       int internal_max_size = -1, int leaf_max_size = -1);
 
   /**
+   * 删除indexHandler对应的索引文件
+   */
+  RC drop(BufferPoolManager &bpm);
+  /**
    * @brief 打开一个B+树
    * @param log_handler 记录日志
    * @param bpm 缓冲池管理器
