@@ -119,6 +119,7 @@ INSERT INTO test_null_table VALUES(2,50.5,18) #SUCCESS
 INSERT INTO test_null_table VALUES(3,NULL,NULL) #FAILURE
 SELECT * FROM test_null_table where weight is null
 SELECT * FROM test_null_table where weight is not null
+SELECT * FROM test_null_table where 1 is null
 DROP TABLE test_null_table
 ```
 - date
