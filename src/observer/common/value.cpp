@@ -125,6 +125,7 @@ void Value::set_data(char *data, int length)
     case AttrType::CHARS: {
       set_string(data, length);
     } break;
+    case AttrType::DATES: 
     case AttrType::INTS: {
       value_.int_value_ = *(int *)data;
       length_           = length;
@@ -149,6 +150,14 @@ void Value::set_int(int val)
   attr_type_        = AttrType::INTS;
   value_.int_value_ = val;
   length_           = sizeof(val);
+}
+
+void Value::set_date(int val)
+{
+  reset();
+  attr_type_ = AttrType::DATES;
+  value_.int_value_ = val;
+  length_ = sizeof(val);
 }
 
 void Value::set_float(float val)
@@ -205,7 +214,7 @@ void Value::set_null_value()  // 设置 value 为 NULL 时 value_ 中的值（�
       memcpy(value_.pointer_value_, s, len);
       value_.pointer_value_[len] = '\0';
     } break;
-    //case AttrType::DATES:
+    case AttrType::DATES:
     case AttrType::INTS: {
       value_.int_value_ = INT32_MAX;  // WARN: 这里 INT32_MAX 本应该是一个合法 INT 输入，但是也没有别的办法了。。。
       length_ = sizeof(INT32_MAX);
@@ -241,6 +250,9 @@ void Value::set_value(const Value &value)
   switch (value.attr_type_) {
     case AttrType::INTS: {
       set_int(value.get_int());
+    } break;
+    case AttrType::DATES: {
+      set_date(value.get_int());
     } break;
     case AttrType::FLOATS: {
       set_float(value.get_float());
@@ -303,6 +315,7 @@ int Value::get_int() const
         return 0;
       }
     }
+    case AttrType::DATES:
     case AttrType::INTS: {
       return value_.int_value_;
     }

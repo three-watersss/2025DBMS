@@ -140,11 +140,11 @@ RC Table::drop(Db *db, const char *path)
 
     // 删除索引文件
     for (Index *index : heap_engine->indexes_) {
-      rc = index->drop(this);
-      if (rc != RC::SUCCESS) {
-        LOG_ERROR("Failed to drop index. index name = %s", index->index_meta().name());
-        return rc;
-      }
+    rc = index->drop(this);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to drop index. index name = %s", index->index_meta().name());
+      return rc;
+    }
       delete index;
     }
     heap_engine->indexes_.clear();
@@ -157,12 +157,12 @@ RC Table::drop(Db *db, const char *path)
     }
 
     // 关闭数据文件并删除
-    BufferPoolManager &bpm       = db->buffer_pool_manager();
+  BufferPoolManager &bpm       = db->buffer_pool_manager();
     std::string data_file = table_data_file(base_dir_.c_str(), table_meta_.name());
     rc                    = bpm.remove_file(data_file.c_str());
-    if (rc != RC::SUCCESS) {
-      LOG_ERROR("Failed to remove disk buffer pool of data file. file name=%s", data_file.c_str());
-      return rc;
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to remove disk buffer pool of data file. file name=%s", data_file.c_str());
+    return rc;
     }
     heap_engine->data_buffer_pool_ = nullptr;  // 已由 bpm.remove_file 释放
   } else if (table_meta_.storage_engine() == StorageEngine::LSM) {

@@ -19,6 +19,7 @@ enum class AttrType
   UNDEFINED,
   CHARS,     ///< 字符串类型
   INTS,      ///< 整数类型(4字节)
+  DATES,     ///< 日期类型 使用与1970年1月1日相差的天数进行保存，打印时转为YYYY-MM-DD格式
   FLOATS,    ///< 浮点数类型(4字节)
   VECTORS,   ///< 向量类型
   BOOLEANS,  ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的

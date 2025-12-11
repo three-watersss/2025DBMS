@@ -203,7 +203,7 @@ public:
     cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
     switch (field_meta->type()) {
       case AttrType::INTS:
-      //case AttrType::DATES:
+      case AttrType::DATES:
         if (cell.get_int() == INT32_MAX) {
           cell.set_is_null(true);
         } else {
