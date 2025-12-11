@@ -114,10 +114,24 @@ SHOW TABLES
 ```bash
 CREATE TABLE test_null_table(id int,weight float nullable,age int not null)
 SHOW TABLES
-INSERT INTO test_null_table VALUES(1,NULL,16)
-INSERT INTO test_null_table VALUES(2,50.5,18)
-INSERT INTO test_null_table VALUES(3,NULL,NULL)
+INSERT INTO test_null_table VALUES(1,NULL,16) #SUCCESS
+INSERT INTO test_null_table VALUES(2,50.5,18) #SUCCESS
+INSERT INTO test_null_table VALUES(3,NULL,NULL) #FAILURE
 SELECT * FROM test_null_table where weight is null
 SELECT * FROM test_null_table where weight is not null
 DROP TABLE test_null_table
+```
+- date
+```bash
+CREATE TABLE test_date_table(id int,birthday date nullable)
+SHOW TABLES
+INSERT INTO test_date_table VALUES(1,'1999-01-05') #SUCCESS
+INSERT INTO test_date_table VALUES(2,'2050-10-1') #FAILURE
+INSERT INTO test_date_table VALUES(3,'2024-02-29') #SUCCESS
+INSERT INTO test_date_table VALUES(4,NULL) #SUCCESS
+SELECT * FROM test_date_table
+SELECT * FROM test_date_table where birthday is not null
+SELECT * FROM test_date_table where birthday is null
+DROP TABLE test_date_table
+SHOW TABLES
 ```
