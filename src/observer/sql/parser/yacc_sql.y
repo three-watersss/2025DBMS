@@ -737,6 +737,28 @@ condition:
 
       delete $1;
     }
+    | value IS NUL
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->right_is_attr = 0;
+      $$->right_value = Value("", 0, true);
+      $$->comp = CompOp_IS;
+
+      delete $1;
+    }
+    | value IS NOT NUL
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->right_is_attr = 0;
+      $$->right_value = Value("", 0, true);
+      $$->comp = CompOp_IS_NOT;
+
+      delete $1;
+    }
     | value comp_op rel_attr
     {
       $$ = new ConditionSqlNode;
