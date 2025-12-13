@@ -74,7 +74,6 @@ Value &Value::operator=(const Value &other)
   this->own_data_  = other.own_data_;
   this->is_null_   = other.is_null_;
   switch (this->attr_type_) {
-    case AttrType::TEXTS:
     case AttrType::CHARS: {
       set_string_from_other(other);
     } break;
@@ -105,7 +104,6 @@ Value &Value::operator=(Value &&other)
 void Value::reset()
 {
   switch (attr_type_) {
-    case AttrType::TEXTS:
     case AttrType::CHARS:
       if (own_data_ && value_.pointer_value_ != nullptr) {
         delete[] value_.pointer_value_;
@@ -124,7 +122,6 @@ void Value::reset()
 void Value::set_data(char *data, int length)
 {
   switch (attr_type_) {
-    case AttrType::TEXTS:
     case AttrType::CHARS: {
       set_string(data, length);
     } break;
@@ -208,7 +205,7 @@ void Value::set_string(const char *s, int len,bool is_null /*= 0*/)
 void Value::set_null_value()  // 设置 value 为 NULL 时 value_ 中的值（要设置成一些正常用户不会输入的值）
 {
   switch (attr_type_) {
-    case AttrType::TEXTS:
+    //case AttrType::TEXTS:
     case AttrType::CHARS: {
       char s[]              = "NUL\1";
       int  len              = strlen(s);
@@ -260,7 +257,6 @@ void Value::set_value(const Value &value)
     case AttrType::FLOATS: {
       set_float(value.get_float());
     } break;
-    case AttrType::TEXTS:
     case AttrType::CHARS: {
       set_string(value.get_string().c_str());
     } break;
@@ -275,7 +271,7 @@ void Value::set_value(const Value &value)
 
 void Value::set_string_from_other(const Value &other)
 {
-  ASSERT(attr_type_ == AttrType::CHARS||attr_type_ == AttrType::TEXTS, "attr type is not CHARS or TEXTS");
+  ASSERT(attr_type_ == AttrType::CHARS, "attr type is not CHARS");
   if (own_data_ && other.value_.pointer_value_ != nullptr && length_ != 0) {
     this->value_.pointer_value_ = new char[this->length_ + 1];
     memcpy(this->value_.pointer_value_, other.value_.pointer_value_, this->length_);
@@ -286,7 +282,6 @@ void Value::set_string_from_other(const Value &other)
 char *Value::data() const
 {
   switch (attr_type_) {
-    case AttrType::TEXTS:
     case AttrType::CHARS: {
       return value_.pointer_value_;
     } break;

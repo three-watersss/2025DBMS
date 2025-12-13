@@ -39,7 +39,3 @@ string table_lob_file(const char *base_dir, const char *table_name)
 {
   return filesystem::path(base_dir) / (string(table_name) + TABLE_LOB_SUFFIX);
 }
-string table_text_file(const char *base_dir, const char *table_name)
-{
-  return filesystem::path(base_dir) / (string(table_name) + TABLE_TEXT_SUFFIX);
-}

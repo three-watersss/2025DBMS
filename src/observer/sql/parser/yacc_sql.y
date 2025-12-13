@@ -88,7 +88,6 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         INT_T
         DATE_T
         STRING_T
-        TEXT_T
         FLOAT_T
         VECTOR_T
         IS
@@ -420,7 +419,6 @@ type:
     INT_T      { $$ = static_cast<int>(AttrType::INTS); }
     | DATE_T   { $$ = static_cast<int>(AttrType::DATES); }
     | STRING_T { $$ = static_cast<int>(AttrType::CHARS); }
-    | TEXT_T   { $$ = static_cast<int>(AttrType::TEXTS);}
     | FLOAT_T  { $$ = static_cast<int>(AttrType::FLOATS); }
     | VECTOR_T { $$ = static_cast<int>(AttrType::VECTORS); }
     ;
