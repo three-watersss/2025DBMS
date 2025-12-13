@@ -909,7 +909,9 @@ RC BplusTreeHandler::drop(BufferPoolManager &bpm)
   RC rc = RC::SUCCESS;
 
   if (disk_buffer_pool_ != nullptr) {
-    rc = bpm.remove_file(disk_buffer_pool_->filename());
+    std::string filename = disk_buffer_pool_->filename();
+    LOG_INFO("Removing index file: %s", filename.c_str());
+    rc = bpm.remove_file(filename.c_str());
   }
   disk_buffer_pool_ = nullptr;
   return rc;

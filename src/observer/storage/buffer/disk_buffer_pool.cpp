@@ -840,14 +840,18 @@ RC BufferPoolManager::create_file(const char *file_name)
 
 RC BufferPoolManager::remove_file(const char *file_name)
 {
+  // 尝试关闭文件（如果文件在 buffer_pools_ 中）
+  // 即使关闭失败，也要尝试删除文件，因为文件可能已经关闭但还在磁盘上
   RC rc = close_file(file_name);
   if (rc != RC::SUCCESS) {
     return rc;
   }
 
-  int remove_ret = 0;
-  if ((remove_ret = ::remove(file_name)) == -1)
-    ;
+  if (::remove(file_name)<0)
+  {
+    LOG_ERROR("Failed to remove file: %s, error: %s", file_name, strerror(errno));
+    return RC::IOERR_REMOVE;
+  }
 
   return rc;
 }
