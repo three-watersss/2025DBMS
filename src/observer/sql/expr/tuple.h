@@ -200,7 +200,14 @@ public:
     const FieldMeta *field_meta = field_expr->field().meta();
     cell.reset();
     cell.set_type(field_meta->type());
-    cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    if (field_meta->type() == AttrType::TEXTS) {
+      // 因为 TEXT 使用了不同的存储方式，所以这里要特殊处理
+      int          index   = *(int *)(this->record_->data() + field_meta->offset());
+      const string content = table_->get_text_attribute(index);
+      cell.set_data(content.c_str(), 0);
+    } else {
+      cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    }
     switch (field_meta->type()) {
       case AttrType::INTS:
       case AttrType::DATES:
@@ -217,7 +224,7 @@ public:
           cell.set_is_null(false);
         }
         break;
-      //case AttrType::TEXTS:
+      case AttrType::TEXTS:
       case AttrType::CHARS:
         if (strcmp(cell.get_string().c_str(), "NUL\1") == 0) {
           cell.set_is_null(true);
