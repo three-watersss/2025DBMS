@@ -103,6 +103,7 @@ MiniOB 采用 [木兰宽松许可证，第2版](https://license.coscl.org.cn/Mul
 
 
 # TEST
+-使用test/case/miniob_test.py进行测试，该测试与官网测试样例基本一致
 - drop_table
 ```bash
 CREATE TABLE test_drop_table(id int)
