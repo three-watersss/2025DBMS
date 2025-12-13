@@ -314,6 +314,7 @@ RC HeapTableEngine::open()
   RC rc = RC::SUCCESS;
   init();
   const int index_num = table_meta_->index_num();
+  LOG_INFO("Opening table %s, found %d indexes in meta", table_meta_->name(), index_num);
   for (int i = 0; i < index_num; i++) {
     const IndexMeta *index_meta = table_meta_->index(i);
     const FieldMeta *field_meta = table_meta_->field(index_meta->field());
@@ -338,6 +339,8 @@ RC HeapTableEngine::open()
       return rc;
     }
     indexes_.push_back(index);
+    LOG_INFO("Successfully loaded index %s into indexes_ list", index_meta->name());
   }
+  LOG_INFO("Table %s opened, total %zu indexes loaded", table_meta_->name(), indexes_.size());
   return rc;
 }

@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/table/table.h"
 #include "storage/db/db.h"
+#include "storage/common/meta_util.h"
+#include <errno.h>
 
 BplusTreeIndex::~BplusTreeIndex() noexcept { close(); }
 
@@ -47,7 +49,38 @@ RC BplusTreeIndex::create(Table *table, const char *file_name, const IndexMeta &
 RC BplusTreeIndex::drop(Table *table)
 {
   BufferPoolManager &bpm = table->db()->buffer_pool_manager();
-  return index_handler_.drop(bpm);
+  RC rc = index_handler_.drop(bpm);
+  
+  // 无论 drop 是否成功，都尝试根据索引元数据构造文件路径并删除
+  // 这样可以确保即使 disk_buffer_pool_ 为 nullptr 或删除失败，文件也能被删除
+  string index_file = table_index_file(table->db()->path().c_str(), table->table_meta().name(), index_meta_.name());
+  
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("Failed to drop index via handler, trying to remove file directly. file=%s", index_file.c_str());
+  }
+  
+  // 尝试直接删除文件（如果 handler 删除失败或文件仍然存在）
+  if (::remove(index_file.c_str()) == 0) {
+    LOG_INFO("Successfully remove index file: %s", index_file.c_str());
+    rc = RC::SUCCESS;
+  } else if (errno != ENOENT) {
+    // 文件存在但删除失败
+    if (rc == RC::SUCCESS) {
+      // 如果 handler 返回成功但文件仍然存在，记录警告
+      LOG_WARN("Index handler reported success but file still exists, trying to remove: %s, error: %s", 
+               index_file.c_str(), strerror(errno));
+    } else {
+      LOG_ERROR("Failed to remove index file: %s, error: %s", index_file.c_str(), strerror(errno));
+    }
+  } else {
+    // 文件不存在（ENOENT），说明已经成功删除
+    if (rc != RC::SUCCESS) {
+      LOG_INFO("Index file already removed: %s", index_file.c_str());
+    }
+    rc = RC::SUCCESS;
+  }
+  
+  return rc;
 }
 
 RC BplusTreeIndex::open(Table *table, const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta)
