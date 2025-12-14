@@ -30,6 +30,10 @@ RC CharType::set_value_from_str(Value &val, const string &data) const
 RC CharType::cast_to(const Value &val, AttrType type, Value &result) const
 {
   switch (type) {
+    case AttrType::TEXTS: // chars 类型转 text 类型，因为都是字符串所以直接复制即可。
+      result = val;
+      result.attr_type_ = AttrType::TEXTS;
+      break;
     case AttrType::DATES: {
       if(DateType::is_valid(val.data())) {
         result.set_date(DateType::to_int(val.data()));

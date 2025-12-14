@@ -111,6 +111,7 @@ ROLLBACK                                RETURN_TOKEN(TRX_ROLLBACK);
 INT                                     RETURN_TOKEN(INT_T);
 DATE                                    RETURN_TOKEN(DATE_T);
 CHAR                                    RETURN_TOKEN(STRING_T);
+TEXT                                    RETURN_TOKEN(TEXT_T);
 FLOAT                                   RETURN_TOKEN(FLOAT_T);         
 VECTOR                                  RETURN_TOKEN(VECTOR_T);
 IS                                      RETURN_TOKEN(IS);

@@ -21,6 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/types.h"
 #include "common/lang/span.h"
 #include "common/lang/functional.h"
+#include "storage/table/text_manager.h"
 #include <string>
 
 struct RID;
@@ -138,13 +139,17 @@ public:
   Index *find_index(const char *index_name) const;
   Index *find_index_by_field(const char *field_name) const;
 
+public:
+  const string get_text_attribute(int index) const;
+
 private:
   Db       *db_ = nullptr;
   TableMeta table_meta_;
-  DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
-  RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
-  vector<Index *>    indexes_;
+  //DiskBufferPool    *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
+  //RecordFileHandler *record_handler_   = nullptr;  /// 记录操作
+  //vector<Index *>    indexes_;
   unique_ptr<TableEngine> engine_      = nullptr;
   LobFileHandler         *lob_handler_ = nullptr;
   std::string             base_dir_;   /// 表数据与索引所在目录
+  TextManager             text_manager_;
 };

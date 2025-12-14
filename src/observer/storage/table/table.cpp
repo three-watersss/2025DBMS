@@ -122,6 +122,8 @@ RC Table::create(Db *db, int32_t table_id, const char *path, const char *name, c
     return rc;
   }
 
+  text_manager_.set_path(table_text_file(base_dir, name));
+
   LOG_INFO("Successfully create table %s:%s", base_dir, name);
   return rc;
 }
@@ -179,8 +181,8 @@ RC Table::drop(Db *db, const char *path)
     LOG_ERROR("Failed to remove mate file. file name=%s. error details: %s", path, strerror(errno));
   }
 
-  // 删除 LOM
-  //lom_.drop();
+  // 删除 TextManager
+  text_manager_.drop();
 
   return rc;
 }
@@ -231,6 +233,8 @@ RC Table::open(Db *db, const char *meta_file, const char *base_dir)
     return rc;
   }
 
+  text_manager_.set_path(table_text_file(base_dir, name()));
+  text_manager_.open();
   return rc;
 }
 
@@ -332,8 +336,17 @@ RC Table::set_value_to_record(char *record_data, const Value &value, const Field
     if (copy_len > data_len) {
       copy_len = data_len + 1;
     }
+    memcpy(record_data + field->offset(), value.data(), copy_len);
+  } else if (field->type() == AttrType::TEXTS) {
+    // TEXTS：在原本插入数据的地方插入 int 数值，含义是长文本列表的 index。然后使用 text_manager
+    // 将字符串复制到列表的一个新位置中。
+    uint32_t index;
+    text_manager_.add_text(value.data(), index);
+    int *t = (int *)(record_data + field->offset());
+    *t     = (int)index;
+  } else {
+    memcpy(record_data + field->offset(), value.data(), copy_len);
   }
-  memcpy(record_data + field->offset(), value.data(), copy_len);
   return RC::SUCCESS;
 }
 
@@ -368,5 +381,13 @@ Index *Table::find_index_by_field(const char *field_name) const
 
 RC Table::sync()
 {
+  text_manager_.flush();
   return engine_->sync();
+}
+
+const string Table::get_text_attribute(int index) const
+{
+  string ret;
+  text_manager_.find_text(ret, (uint32_t)index);
+  return ret;
 }

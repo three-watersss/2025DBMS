@@ -198,9 +198,21 @@ public:
 
     FieldExpr       *field_expr = speces_[index];
     const FieldMeta *field_meta = field_expr->field().meta();
+
+    LOG_INFO("Reading field: name=%s, type=%d, offset=%d, len=%d", 
+      field_meta->name(), field_meta->type(), field_meta->offset(), field_meta->len());
     cell.reset();
     cell.set_type(field_meta->type());
-    cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    if (field_meta->type() == AttrType::TEXTS) {
+      // 因为 TEXT 使用了不同的存储方式，所以这里要特殊处理
+      int          text_index = *(int *)(this->record_->data() + field_meta->offset());
+      const string content    = table_->get_text_attribute(text_index);
+      // 使用 set_string 设置字符串内容，然后手动设置类型为 TEXTS
+      cell.set_string(content.c_str(), 0);
+      cell.set_type(AttrType::TEXTS);
+    } else {
+      cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    }
     switch (field_meta->type()) {
       case AttrType::INTS:
       case AttrType::DATES:
@@ -217,7 +229,7 @@ public:
           cell.set_is_null(false);
         }
         break;
-      //case AttrType::TEXTS:
+      case AttrType::TEXTS:
       case AttrType::CHARS:
         if (strcmp(cell.get_string().c_str(), "NUL\1") == 0) {
           cell.set_is_null(true);

@@ -19,11 +19,12 @@ See the Mulan PSL v2 for more details. */
 // your code here
 
 array<unique_ptr<DataType>, static_cast<int>(AttrType::MAXTYPE)> DataType::type_instances_ = {
-    make_unique<DataType>(AttrType::UNDEFINED),
-    make_unique<CharType>(),
-    make_unique<IntegerType>(),
-    make_unique<DateType>(),
-    make_unique<FloatType>(),
-    make_unique<VectorType>(),
-    make_unique<DataType>(AttrType::BOOLEANS),
+    make_unique<DataType>(AttrType::UNDEFINED),  // 0: UNDEFINED
+    make_unique<CharType>(),                     // 1: CHARS
+    make_unique<CharType>(),                     // 2: TEXTS (使用 CharType 处理，因为都是字符串类型)
+    make_unique<IntegerType>(),                  // 3: INTS
+    make_unique<DateType>(),                     // 4: DATES
+    make_unique<FloatType>(),                    // 5: FLOATS
+    make_unique<VectorType>(),                   // 6: VECTORS
+    make_unique<DataType>(AttrType::BOOLEANS),   // 7: BOOLEANS
 };
