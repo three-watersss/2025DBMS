@@ -12,6 +12,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/record/record.h"
 #include "storage/table/table.h"
+#include "sql/expr/expression.h"
+#include "common/lang/unordered_set.h"
 
 using namespace std;
 
@@ -66,8 +68,37 @@ RC ProjectVecPhysicalOperator::close()
 
 RC ProjectVecPhysicalOperator::tuple_schema(TupleSchema &schema) const
 {
+  // 检查是否是多表查询：收集所有FieldExpr的表名
+  unordered_set<string> table_names;
   for (const unique_ptr<Expression> &expression : expressions_) {
-    schema.append_cell(expression->name());
+    if (expression->type() == ExprType::FIELD) {
+      const FieldExpr *field_expr = static_cast<const FieldExpr *>(expression.get());
+      const char *table_name = field_expr->table_name();
+      if (table_name != nullptr && strlen(table_name) > 0) {
+        table_names.insert(string(table_name));
+      }
+    }
+  }
+  bool is_multi_table = table_names.size() > 1;
+
+  // 为每个表达式创建TupleCellSpec
+  for (const unique_ptr<Expression> &expression : expressions_) {
+    if (expression->type() == ExprType::FIELD) {
+      const FieldExpr *field_expr = static_cast<const FieldExpr *>(expression.get());
+      const char *table_name = field_expr->table_name();
+      const char *field_name = field_expr->field_name();
+      
+      if (is_multi_table && table_name != nullptr && strlen(table_name) > 0) {
+        // 多表查询：使用表名.字段名
+        schema.append_cell(table_name, field_name);
+      } else {
+        // 单表查询：只使用字段名
+        schema.append_cell(expression->name());
+      }
+    } else {
+      // 非FieldExpr表达式：使用原来的方式
+      schema.append_cell(expression->name());
+    }
   }
   return RC::SUCCESS;
 }
