@@ -108,7 +108,7 @@ MiniOB 采用 [木兰宽松许可证，第2版](https://license.coscl.org.cn/Mul
 ```bash
 CREATE TABLE test_drop_table(id int)
 SHOW TABLES
-DROP test_drop_table
+DROP TABLE test_drop_table
 SHOW TABLES
 ```
 - null

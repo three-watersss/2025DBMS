@@ -28,6 +28,7 @@ class ExplainLogicalOperator;
 class JoinLogicalOperator;
 class CalcLogicalOperator;
 class GroupByLogicalOperator;
+class UpdateLogicalOperator;
 
 /**
  * @brief 物理计划生成器
@@ -54,10 +55,12 @@ private:
   RC create_plan(JoinLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
   RC create_plan(CalcLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
   RC create_plan(GroupByLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
+  RC create_plan(UpdateLogicalOperator &update_oper, unique_ptr<PhysicalOperator> &oper,Session *session);
   RC create_vec_plan(ProjectLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
   RC create_vec_plan(TableGetLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
   RC create_vec_plan(GroupByLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
   RC create_vec_plan(ExplainLogicalOperator &logical_oper, unique_ptr<PhysicalOperator> &oper, Session *session);
+
 
   // TODO: remove this and add CBO rules
   bool can_use_hash_join(JoinLogicalOperator &logical_oper);

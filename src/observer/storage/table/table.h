@@ -95,6 +95,7 @@ public:
 
   RC insert_chunk(const Chunk &chunk);
   RC delete_record(const Record &record);
+  RC update_record(Record &record, const char *attr_name, Value *value);
 
   RC insert_record_with_trx(Record &record, Trx *trx);
   RC delete_record_with_trx(const Record &record, Trx *trx);

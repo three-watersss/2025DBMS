@@ -370,6 +370,11 @@ RC Table::delete_record(const Record &record)
   return engine_->delete_record(record);
 }
 
+RC Table::update_record(Record &record, const char *attr_name, Value *value)
+{
+  return engine_->update_record(record, attr_name, value);
+}
+
 Index *Table::find_index(const char *index_name) const
 {
   return engine_->find_index(index_name);
@@ -391,3 +396,4 @@ const string Table::get_text_attribute(int index) const
   text_manager_.find_text(ret, (uint32_t)index);
   return ret;
 }
+

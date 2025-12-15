@@ -103,6 +103,71 @@ RC HeapTableEngine::delete_record(const Record &record)
   return rc;
 }
 
+RC HeapTableEngine::update_record(Record &record, const char *attr_name, Value *value)
+{
+  // 遍历表格的全部域，找到目标域
+  const int  sys_field_num  = table_meta_->sys_field_num();
+  const int  user_field_num = table_meta_->field_num() - sys_field_num;
+  bool       isIndex        = false;
+  FieldMeta *targetFiled    = nullptr;
+
+  for (int i = 0; i < user_field_num; i++) {
+    const FieldMeta *field_meta = table_meta_->field(sys_field_num + i);
+    const char      *field_name = field_meta->name();
+
+    // 找到目标域
+    if (field_name == attr_name) {
+
+      // 类型匹配检查
+      if (field_meta->type() != value->attr_type()) {
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+
+      // 判断是否为索引列
+      isIndex = find_index_by_field(field_name) == nullptr ? false : true;
+
+      // 拿到目标域
+      targetFiled = (FieldMeta *)field_meta;
+      break;
+    }
+  }
+
+  // 域存在检查
+  if (nullptr == targetFiled) {
+    return RC::SCHEMA_FIELD_NOT_EXIST;
+  }
+
+  int field_offset = targetFiled->offset();
+  int field_length = targetFiled->len();
+
+  // 修改旧数据
+  char *old_data = record.data();
+  if (targetFiled->type() == AttrType::CHARS) {
+    memcpy(old_data + field_offset, value->data(), strlen(value->data()) + 1);
+  } else if (targetFiled->type() == AttrType::TEXTS)  // TEXT 在这里要访问 LOM 做特殊处理
+  {
+    int index = *(int *)(old_data + field_offset);  // 获得旧字符串的指针
+    table_->text_manager_.update_text(value->data(), index);  // 修改成新的信息
+  } else {
+    memcpy(old_data + field_offset, value->data(), field_length);
+  }
+
+  record.set_data(old_data);
+
+  // 判断索引是否重复
+  if (isIndex) {
+    RC rc = insert_entry_of_indexes(record.data(), record.rid());
+    if (rc != RC::SUCCESS) {
+      rc = delete_entry_of_indexes(record.data(), record.rid(), false);
+      return rc;
+    }
+  }
+
+  record_handler_->update_record(&record);
+  // delete old_data;
+  return RC::SUCCESS;
+}
+
 RC HeapTableEngine::get_record_scanner(RecordScanner *&scanner, Trx *trx, ReadWriteMode mode)
 {
   scanner = new HeapRecordScanner(table_, *data_buffer_pool_, trx, db_->log_handler(), mode, nullptr);

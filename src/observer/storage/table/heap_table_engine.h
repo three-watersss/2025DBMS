@@ -10,6 +10,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include "storage/table/text_manager.h"
 #include "storage/table/table_engine.h"
 #include "storage/index/index.h"
 #include "storage/record/record_manager.h"
@@ -29,6 +30,7 @@ public:
   RC insert_record(Record &record) override;
   RC insert_chunk(const Chunk &chunk) override;
   RC delete_record(const Record &record) override;
+  RC update_record(Record &record, const char *attr_name, Value *value) override;
   RC insert_record_with_trx(Record &record, Trx *trx) override { return RC::UNSUPPORTED; }
   RC delete_record_with_trx(const Record &record, Trx *trx) override { return RC::UNSUPPORTED; }
   RC update_record_with_trx(const Record &old_record, const Record &new_record, Trx *trx) override

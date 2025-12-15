@@ -35,6 +35,7 @@ string physical_operator_type_name(PhysicalOperatorType type)
     case PhysicalOperatorType::TABLE_SCAN_VEC: return "TABLE_SCAN_VEC";
     case PhysicalOperatorType::EXPR_VEC: return "EXPR_VEC";
     default: return "UNKNOWN";
+    case PhysicalOperatorType::UPDATE: return "UPDATE";
   }
 }
 
