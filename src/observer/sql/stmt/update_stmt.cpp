@@ -14,86 +14,73 @@ UpdateStmt::~UpdateStmt()
   }
 }
 
-RC UpdateStmt::create(Db *db, UpdateSqlNode &update, Stmt *&stmt)
+RC UpdateStmt::create(Db *db_instance, UpdateSqlNode &update_node, Stmt *&stmt_instance)
 {
   // Validate the arguments
-  const char *table_name = update.relation_name.c_str();
-  const char *field_name = update.attribute_name.c_str();
+  const char *target_table_name = update_node.relation_name.c_str();
+  const char *target_field_name = update_node.attribute_name.c_str();
 
-  if (nullptr == db || nullptr == table_name || nullptr == field_name || 0 == update.value.length()) {
+  if (nullptr == db_instance || nullptr == target_table_name || nullptr == target_field_name ||
+      0 == update_node.value.length()) {
     LOG_WARN("Invalid argument. db=%p, table_name=%p, field_name=%p, value_length=%d",
-        db, table_name, field_name, update.value.length());
+        db_instance, target_table_name, target_field_name, update_node.value.length());
     return RC::INVALID_ARGUMENT;
   }
 
   // Check if the table exists
-  Table *table = db->find_table(table_name);
-  if (nullptr == table) {
-    LOG_WARN("No such table. db=%s, table_name=%s", db->name(), table_name);
+  Table *target_table = db_instance->find_table(target_table_name);
+  if (nullptr == target_table) {
+    LOG_WARN("No such table. db=%s, table_name=%s", db_instance->name(), target_table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
   // Check if the field exists
-  const TableMeta &table_meta = table->table_meta();
-  const FieldMeta *field      = table_meta.field(field_name);
-  if (nullptr == field) {
-    LOG_WARN("No such field. db=%s, field_name=%s", db->name(), field_name);
+  const TableMeta &meta_data    = target_table->table_meta();
+  const FieldMeta *target_field = meta_data.field(target_field_name);
+  if (nullptr == target_field) {
+    LOG_WARN("No such field. db=%s, field_name=%s", db_instance->name(), target_field_name);
     return RC::SCHEMA_FIELD_NOT_EXIST;
   }
-  // check if the type equals
-  Value real_value;
-  if (field->type() != update.value.attr_type()) {
-    // LOG_WARN("field type mismatch, table=%s, field=%s, field type=%d, value_type=%d",
-    // table_name,field->name(),field->type(),update.value.attr_type());
-    // return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-    // NOTE: 下面这段代码是从 make_record 里拿的，改这个的时候记得连那里的一块改（不想封装了 qaq）
-    if (update.value.is_null())  // 插入的是一个空值
-    {
-      if (not field->nullable()) {  // 所在列不允许插入空值
+
+  // Check if the type matches
+  Value processed_value;
+  if (target_field->type() != update_node.value.attr_type()) {
+    if (update_node.value.is_null()) {     // Insert a null value
+      if (not target_field->nullable()) {  // The column doesn't allow null values
         return RC::NULL_CANT_INSERT;
       }
-      real_value = update.value;
-      real_value.set_type(field->type());  // 设置空值对应的类型
-      real_value.set_null_value();
+      processed_value = update_node.value;
+      processed_value.set_type(target_field->type());  // Set the type of the null value
+      processed_value.set_null_value();
     } else {
-      RC rc = Value::cast_to(update.value, field->type(), real_value);
+      RC rc = Value::cast_to(update_node.value, target_field->type(), processed_value);
       if (OB_FAIL(rc)) {
-        LOG_WARN("failed to cast value. table name:%s,field name:%s,value:%s ",
-          table_name, field->name(), update.value.to_string().c_str());
+        LOG_WARN("failed to cast value. table name:%s, field name:%s, value:%s ",
+          target_table_name, target_field->name(), update_node.value.to_string().c_str());
         return rc;
       }
     }
-    update.value = real_value;
+    update_node.value = processed_value;
   }
 
-  // // check if the date is legal
-  // if (update.value.attr_type() == AttrType::DATES && update.value.get_int() == 0) {
-  //   return RC::VARIABLE_NOT_VALID;
-  // }
-  // handle the condition
+  // Handle the condition
   std::unordered_map<std::string, Table *> table_map;
-  table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
+  table_map.insert(std::pair<std::string, Table *>(std::string(target_table_name), target_table));
 
-  FilterStmt *filter_stmt = nullptr;
-  RC          rc          = FilterStmt::create(
-      db, table, &table_map, update.conditions.data(), static_cast<int>(update.conditions.size()), filter_stmt);
+  FilterStmt *filter_stmt_instance = nullptr;
+  RC          rc                   = FilterStmt::create(db_instance,
+      target_table,
+      &table_map,
+      update_node.conditions.data(),
+      static_cast<int>(update_node.conditions.size()),
+      filter_stmt_instance);
   if (rc != RC::SUCCESS) {
     LOG_WARN("cannot construct filter stmt");
     return rc;
   }
 
   // Create the update statement with the relevant table, field, value, and conditions
-  stmt = new UpdateStmt(table, (Value *)&update.value, 1, filter_stmt, (FieldMeta *)field);
+  stmt_instance =
+      new UpdateStmt(target_table, (Value *)&update_node.value, 1, filter_stmt_instance, (FieldMeta *)target_field);
   return RC::SUCCESS;
 }
-
-// void UpdateStmt::set_field_value(const char * field_name, const Value &value)
-// {
-//   field_name_ = field_name;
-//   value_ = value;
-// }
-
-// void UpdateStmt::set_condition(std::vector<ConditionSqlNode> *condition)
-// {
-//   condition_ = condition;
-// }
