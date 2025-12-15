@@ -34,4 +34,48 @@ class SumAggregator : public Aggregator
 public:
   RC accumulate(const Value &value) override;
   RC evaluate(Value &result) override;
+
+private:
+  bool seen_non_null_ = false;
+};
+
+class CountAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+
+private:
+  int  count_        = 0;
+};
+
+class AvgAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+
+private:
+  double sum_         = 0.0;
+  int    count_       = 0;
+};
+
+class MaxAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+
+private:
+  bool seen_non_null_ = false;
+};
+
+class MinAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+
+private:
+  bool seen_non_null_ = false;
 };
