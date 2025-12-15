@@ -418,6 +418,11 @@ RC ExpressionBinder::bind_aggregate_expression(
   unique_ptr<Expression>        &child_expr = unbound_aggregate_expr->child();
   vector<unique_ptr<Expression>> child_bound_expressions;
 
+  // When parsed with zero or multiple arguments, child_expr could be nullptr.
+  if (child_expr == nullptr) {
+    return RC::INVALID_ARGUMENT;
+  }
+
   if (child_expr->type() == ExprType::STAR && aggregate_type == AggregateExpr::Type::COUNT) {
     ValueExpr *value_expr = new ValueExpr(Value(1));
     child_expr.reset(value_expr);
