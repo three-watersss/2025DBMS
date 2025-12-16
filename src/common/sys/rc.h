@@ -87,6 +87,7 @@ See the Mulan PSL v2 for more details. */
   DEFINE_RC(UNSUPPORTED)                 \
   DEFINE_RC(NULL_CANT_INSERT)            \
   DEFINE_RC(RECORD_RECORD_NOT_EXIST)     \
+  DEFINE_RC(RECORD_NOT_UNIQUE)           \
   DEFINE_RC(IOERR_REMOVE)
 enum class RC
 {

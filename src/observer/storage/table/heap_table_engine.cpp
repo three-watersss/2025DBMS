@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/index/bplus_tree_index.h"
 #include "storage/common/meta_util.h"
 #include "storage/db/db.h"
+#include <set>
 
 
 HeapTableEngine::~HeapTableEngine()
@@ -38,6 +39,26 @@ HeapTableEngine::~HeapTableEngine()
 }
 RC HeapTableEngine::insert_record(Record &record)
 {
+  // Check uniqueness
+  for (auto index : indexes_) {
+    if (index->index_meta().isUnique()) {
+      const FieldMeta &field_meta = index->field_meta();
+      const char *key = record.data() + field_meta.offset();
+      int key_len = field_meta.len();
+      
+      IndexScanner *scanner = index->create_scanner(key, key_len, true, key, key_len, true);
+      if (scanner) {
+        RID rid;
+        RC rc = scanner->next_entry(&rid);
+        delete scanner;
+        if (rc == RC::SUCCESS) {
+          LOG_WARN("failed to insert record, record is not unique");
+          return RC::RECORD_NOT_UNIQUE;
+        }
+      }
+    }
+  }
+
   RC rc = RC::SUCCESS;
   rc    = record_handler_->insert_record(record.data(), table_meta_->record_size(), &record.rid());
   if (rc != RC::SUCCESS) {
@@ -187,16 +208,41 @@ RC HeapTableEngine::get_chunk_scanner(ChunkFileScanner &scanner, Trx *trx, ReadW
   return rc;
 }
 
-RC HeapTableEngine::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name)
+RC HeapTableEngine::create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name, bool isUnique)
 {
   if (common::is_blank(index_name) || nullptr == field_meta) {
     LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_name is blank", table_meta_->name());
     return RC::INVALID_ARGUMENT;
   }
 
+  if (isUnique) {
+    RecordScanner *scanner = nullptr;
+    RC rc = get_record_scanner(scanner, trx, ReadWriteMode::READ_ONLY);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create scanner while creating index. table=%s, index=%s, rc=%s", 
+               table_meta_->name(), index_name, strrc(rc));
+      return rc;
+    }
+    
+    std::set<std::string> st;
+    Record record;
+    while (OB_SUCC(rc = scanner->next(record))) {
+      std::string temp(record.data() + field_meta->offset(), field_meta->len());
+      if (st.count(temp)) {
+        LOG_WARN("failed to insert record, record is not unique");
+        scanner->close_scan();
+        delete scanner;
+        return RC::RECORD_NOT_UNIQUE;
+      }
+      st.insert(temp);
+    }
+    scanner->close_scan();
+    delete scanner;
+  }
+
   IndexMeta new_index_meta;
 
-  RC rc = new_index_meta.init(index_name, *field_meta);
+  RC rc = new_index_meta.init(index_name, *field_meta, isUnique);
   if (rc != RC::SUCCESS) {
     LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s", 
              table_meta_->name(), index_name, field_meta->name());
