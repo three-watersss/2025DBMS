@@ -466,81 +466,65 @@ attr_list:
     }
     ;
 
-/* 插入语句解析 */
 insert_stmt:
     INSERT INTO ID VALUES insert_tuple insert_tuple_list
     {
-        // 创建 ParsedSqlNode
         $$ = new ParsedSqlNode(SCF_INSERT);
 
-        // 直接使用 std::string 拷贝
+        // 使用 std::string 自动管理 relation_name
         $$->insertion.relation_name = std::string($3);
 
-        // 插入 tuple
+        // 移动 insert_tuple_list 的内容到 ParsedSqlNode
         if ($6 != nullptr) {
-            $$->insertion.tuples.swap(*$6);
-            delete $6; // 只删除 vector 容器，不删除内部元素
+            $$->insertion.tuples = std::move(*$6);
         }
 
-        $$->insertion.tuples.emplace_back(*$5);
-        delete $5;
-
-        // 旧代码的 reverse 可以保留
-        std::reverse($$->insertion.tuples.begin(), $$->insertion.tuples.end());
-
-        // 不再手动 free $3
-        // free($3); // 移除
+        // 当前 insert_tuple 也移动进去
+        if ($5 != nullptr) {
+            $$->insertion.tuples.emplace_back(std::move(*$5));
+        }
     }
 ;
 
-/* tuple 列表 */
+
 insert_tuple_list:
       /* empty */
     { $$ = nullptr; }
-    | COMMA insert_tuple insert_tuple_list
-    { 
+  | COMMA insert_tuple insert_tuple_list
+    {
         if ($3 != nullptr) {
-            $$ = $3;
+            $$ = $3; // 已有 vector
         } else {
             $$ = new std::vector<InsertTuple>;
         }
 
-        $$->emplace_back(*$2);
-        delete $2;
+        if ($2 != nullptr) {
+            $$->emplace_back(std::move(*$2));
+        }
     }
 ;
 
-/* 单个 tuple */
 insert_tuple:
-    LBRACE value value_list RBRACE
+    LBRACE value_list RBRACE
     {
-        $$ = new InsertTuple;
-
-        if ($3 != nullptr) {
-            $$->swap(*$3);
-            delete $3;
-        }
-
-        $$->insert($$->begin(), *$2); // 将 value 插入开头
-        delete $2;
+        $$ = $2; // value_list 本身就是 InsertTuple*
     }
 ;
 
 value_list:
-      /* empty */
-    { $$ = nullptr; }
-    | COMMA value value_list
+    value
     {
-        if ($3 != nullptr) {
-            $$ = $3;
-        } else {
-            $$ = new std::vector<Value>;
-        }
-
-        $$->insert($$->begin(), *$2); // value 放在开头
-        delete $2;
+      $$ = new vector<Value>;
+      $$->emplace_back(*$1);
+      delete $1;
     }
-;
+    | value_list COMMA value { 
+      $$ = $1;
+      $$->emplace_back(*$3);
+      delete $3;
+    }
+    ;
+
 value:
     NUMBER {
       $$ = new Value((int)$1);
