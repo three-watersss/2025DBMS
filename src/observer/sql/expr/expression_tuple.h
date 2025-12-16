@@ -25,6 +25,8 @@ class ExpressionTuple : public Tuple
 public:
   ExpressionTuple(const vector<ExprPointerType> &expressions) : expressions_(expressions) {}
   virtual ~ExpressionTuple() = default;
+  
+  Tuple *copy() const override { return new ExpressionTuple(*this); }
 
   void set_tuple(const Tuple *tuple) { child_tuple_ = tuple; }
 

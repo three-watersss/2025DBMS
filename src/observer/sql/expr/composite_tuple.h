@@ -27,6 +27,12 @@ public:
   CompositeTuple()          = default;
   virtual ~CompositeTuple() = default;
 
+  Tuple *copy() const override
+  {
+    printf("并没有实现 ProjectTuple 的 copy，返回 NULL。\n");
+    return NULL;
+  }
+
   /// @brief 删除默认构造函数
   CompositeTuple(const CompositeTuple &) = delete;
   /// @brief 删除默认赋值函数

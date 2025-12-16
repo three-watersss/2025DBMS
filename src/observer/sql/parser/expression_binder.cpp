@@ -31,14 +31,21 @@ Table *BinderContext::find_table(const char *table_name) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static void wildcard_fields(Table *table, vector<unique_ptr<Expression>> &expressions)
+static void wildcard_fields(Table *table, int tot_table, vector<unique_ptr<Expression>> &expressions)
 {
   const TableMeta &table_meta = table->table_meta();
   const int        field_num  = table_meta.field_num();
   for (int i = table_meta.sys_field_num(); i < field_num; i++) {
     Field      field(table, table_meta.field(i));
     FieldExpr *field_expr = new FieldExpr(field);
-    field_expr->set_name(field.field_name());
+    string     final_field_name;
+    if (tot_table > 1)  // 当 select 涉及不止一张表时，结果的表头需要是（表名.列名）的格式
+    {
+      final_field_name = string(table->name()) + "." + string(field.field_name());
+    } else {
+      final_field_name = string(field.field_name());
+    }
+    field_expr->set_name(final_field_name);
     expressions.emplace_back(field_expr);
   }
 }
@@ -124,7 +131,7 @@ RC ExpressionBinder::bind_star_expression(
   }
 
   for (Table *table : tables_to_wildcard) {
-    wildcard_fields(table, bound_expressions);
+    wildcard_fields(table, context_.query_tables().size(), bound_expressions);
   }
 
   return RC::SUCCESS;
@@ -159,7 +166,7 @@ RC ExpressionBinder::bind_unbound_field_expression(
   }
 
   if (0 == strcmp(field_name, "*")) {
-    wildcard_fields(table, bound_expressions);
+    wildcard_fields(table, context_.query_tables().size(), bound_expressions);
   } else {
     const FieldMeta *field_meta = table->table_meta().field(field_name);
     if (nullptr == field_meta) {

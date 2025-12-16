@@ -100,12 +100,23 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt)
     return rc;
   }
 
+  std::vector<OrderStmt *> order_by;
+  for (size_t i = 0; i < select_sql.order_by.size(); i++) {
+    RC         rc         = RC::SUCCESS;
+    OrderStmt *order_stmt = nullptr;
+    rc                    = OrderStmt::create(db, default_table, &table_map, select_sql.order_by[i], order_stmt);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+    order_by.push_back(order_stmt);
+  }
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();
 
   select_stmt->tables_.swap(tables);
   select_stmt->query_expressions_.swap(bound_expressions);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->order_by_.swap(order_by);
   select_stmt->group_by_.swap(group_by_expressions);
   stmt                      = select_stmt;
   return RC::SUCCESS;

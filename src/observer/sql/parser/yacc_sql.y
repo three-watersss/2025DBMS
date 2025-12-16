@@ -73,7 +73,9 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         INDEX
         CALC
         SELECT
-        DESC
+        ASC_T
+        DESC_T
+        ORDER
         SHOW
         SYNC
         INSERT
@@ -146,6 +148,9 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   float                                      floats;
   InsertTuple *                        insert_tuple;
   vector<InsertTuple> *           insert_tuple_list;
+  OrderType                         order_type;
+  OrderSqlNode *                    order_node;
+  std::vector<OrderSqlNode> *       order_list;
 }
 
 %destructor { delete $$; } <condition>
@@ -215,6 +220,11 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <sql_node>            commands
 %type <insert_tuple>           insert_tuple
 %type <insert_tuple_list>      insert_tuple_list
+
+%type <order_list>          order_by
+%type <order_type>          order_type
+%type <order_node>          order_node
+%type <order_list>          order_list
 
 %left '+' '-'
 %left '*' '/'
@@ -307,7 +317,7 @@ show_tables_stmt:
     ;
 
 desc_table_stmt:
-    DESC ID  {
+    DESC_T  ID  {
       $$ = new ParsedSqlNode(SCF_DESC_TABLE);
       $$->desc_table.relation_name = $2;
     }
@@ -500,6 +510,7 @@ insert_tuple_list:
 
         if ($2 != nullptr) {
             $$->emplace_back(std::move(*$2));
+          
         }
     }
 ;
@@ -579,7 +590,7 @@ update_stmt:      /*  update 语句的语法解析树*/
     }
     ;
 select_stmt:        /*  select 语句的语法解析树*/
-    SELECT expression_list FROM rel_list where group_by
+    SELECT expression_list FROM rel_list where order_by group_by
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
@@ -598,8 +609,13 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
 
       if ($6 != nullptr) {
-        $$->selection.group_by.swap(*$6);
+        $$->selection.order_by.swap(*$6);
         delete $6;
+      }
+
+      if ($7 != nullptr) {
+        $$->selection.group_by.swap(*$7);
+        delete $7;
       }
     }
     ;
@@ -841,6 +857,60 @@ comp_op:
     | NE { $$ = NOT_EQUAL; }
     ;
 
+order_by:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | ORDER BY order_list
+    {
+      $$ = $3;
+      std::reverse($$->begin(), $$->end());
+    }
+    ;
+order_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | order_node 
+    {
+      $$ = new std::vector<OrderSqlNode>;
+      $$->emplace_back(*$1);
+      delete $1;
+    }
+    | order_node COMMA order_list 
+    {
+      $$ = $3;
+      $$->emplace_back(*$1);
+      delete $1;
+    }
+    ;
+order_node:
+    rel_attr order_type
+    {
+      $$ = new OrderSqlNode;
+      $$->type=$2;
+      $$->attribute=*$1;
+      delete $1;
+    }
+    ;
+order_type:
+    /* empty */
+    {
+      $$ = ASC;
+    }
+    | ASC_T 
+    {
+      $$ = ASC;
+    }
+    | DESC_T 
+    {
+      $$ = DESC;
+    }
+    ;
+
+  
 // your code here
 group_by:
     /* empty */

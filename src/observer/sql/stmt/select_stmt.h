@@ -17,11 +17,13 @@ See the Mulan PSL v2 for more details. */
 #include "common/sys/rc.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
+#include "sql/stmt/order_stmt.h"
 
 class FieldMeta;
 class FilterStmt;
 class Db;
 class Table;
+class OrderStmt;
 
 /**
  * @brief 表示select语句
@@ -44,10 +46,12 @@ public:
 
   vector<unique_ptr<Expression>> &query_expressions() { return query_expressions_; }
   vector<unique_ptr<Expression>> &group_by() { return group_by_; }
+  vector<OrderStmt *>            &order_by() { return order_by_; }
 
 private:
   vector<unique_ptr<Expression>> query_expressions_;
   vector<Table *>                tables_;
   FilterStmt                    *filter_stmt_ = nullptr;
+  vector<OrderStmt *>            order_by_;
   vector<unique_ptr<Expression>> group_by_;
 };

@@ -45,6 +45,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/optimizer/physical_plan_generator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/operator/update_physical_operator.h"
+#include "sql/operator/order_by_logical_operator.h"
+#include "sql/operator/order_by_physical_operator.h"
 
 using namespace std;
 
@@ -91,6 +93,10 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
 
     case LogicalOperatorType::UPDATE: {
       return create_plan(static_cast<UpdateLogicalOperator &>(logical_operator), oper, session);
+    } break;
+
+    case LogicalOperatorType::ORDER_BY: {
+      return create_plan(static_cast<OrderByLogicalOperator &>(logical_operator), oper,session);
     } break;
 
     default: {
@@ -496,4 +502,28 @@ RC PhysicalPlanGenerator::create_plan(UpdateLogicalOperator &update_oper, std::u
     oper->add_child(std::move(child_physical_oper));
   }
   return RC::SUCCESS;
+}
+
+RC PhysicalPlanGenerator::create_plan(OrderByLogicalOperator &order_by_oper, std::unique_ptr<PhysicalOperator> &oper,Session* session)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = order_by_oper.children();
+
+  unique_ptr<PhysicalOperator> child_physical_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc                          = create(*child_oper, child_physical_oper, session);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  oper = unique_ptr<PhysicalOperator>(new OrderByPhysicalOperator(order_by_oper.orders()));
+
+  if (child_physical_oper) {
+    oper->add_child(std::move(child_physical_oper));
+  }
+  return rc;
 }

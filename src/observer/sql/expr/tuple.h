@@ -70,6 +70,7 @@ class Tuple
 public:
   Tuple()          = default;
   virtual ~Tuple() = default;
+  virtual Tuple *copy() const = 0;
 
   /**
    * @brief 获取元组中的Cell的个数
@@ -162,13 +163,29 @@ class RowTuple : public Tuple
 {
 public:
   RowTuple() = default;
+  RowTuple(const RowTuple &other)
+  {
+    if (other.record_)
+      record_ = new Record(*(other.record_));
+    table_ = other.table_;
+    for (auto fieldExpr : other.speces_) {
+      if (fieldExpr) {
+        speces_.push_back(new FieldExpr(*fieldExpr));
+      } else {
+        speces_.push_back(nullptr);
+      }
+    }
+  }
   virtual ~RowTuple()
   {
     for (FieldExpr *spec : speces_) {
       delete spec;
+      spec = nullptr;  // 删除后将指针置为 nullptr，避免悬挂指针
     }
     speces_.clear();
   }
+
+  Tuple *copy() const override { return new RowTuple(*this); }
 
   void set_record(Record *record) { this->record_ = record; }
 
@@ -299,8 +316,15 @@ private:
 class ProjectTuple : public Tuple
 {
 public:
-  ProjectTuple()          = default;
+  ProjectTuple() = default;
+
   virtual ~ProjectTuple() = default;
+
+  Tuple *copy() const override
+  {
+    printf("并没有实现 ProjectTuple 的 copy，返回 NULL。\n");
+    return NULL;
+  }
 
   void set_expressions(vector<unique_ptr<Expression>> &&expressions) { expressions_ = std::move(expressions); }
 
@@ -357,6 +381,7 @@ public:
   ValueListTuple()          = default;
   virtual ~ValueListTuple() = default;
 
+  Tuple *copy() const override { return new ValueListTuple(*this); }
   void set_names(const vector<TupleCellSpec> &specs) { specs_ = specs; }
   void set_cells(const vector<Value> &cells) { cells_ = cells; }
 
@@ -432,9 +457,20 @@ private:
 class JoinedTuple : public Tuple
 {
 public:
-  JoinedTuple()          = default;
+  JoinedTuple() = default;
+  JoinedTuple(const JoinedTuple &other)
+  {
+    if (other.left_) {
+      left_ = other.left_->copy();
+    }
+
+    if (other.right_) {
+      right_ = other.right_->copy();
+    }
+  }
   virtual ~JoinedTuple() = default;
 
+  Tuple *copy() const override { return new JoinedTuple(*this); }
   void set_left(Tuple *left) { left_ = left; }
   void set_right(Tuple *right) { right_ = right; }
 

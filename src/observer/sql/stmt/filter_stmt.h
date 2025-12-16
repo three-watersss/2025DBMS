@@ -43,6 +43,8 @@ struct FilterObj
   }
 };
 
+RC get_table_and_field(Db *db, Table *default_table, unordered_map<string, Table *> *tables, const RelAttrSqlNode &attr,
+    Table *&table, const FieldMeta *&field);
 class FilterUnit
 {
 public:

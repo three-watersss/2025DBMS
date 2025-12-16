@@ -85,7 +85,9 @@ QUOTE            [\'\"]
 {DOT}                                   RETURN_TOKEN(DOT);
 EXIT                                    RETURN_TOKEN(EXIT);
 HELP                                    RETURN_TOKEN(HELP);
-DESC                                    RETURN_TOKEN(DESC);
+ASC                                     RETURN_TOKEN(ASC_T);
+DESC                                    RETURN_TOKEN(DESC_T);
+ORDER                                   RETURN_TOKEN(ORDER);
 CREATE                                  RETURN_TOKEN(CREATE);
 DROP                                    RETURN_TOKEN(DROP);
 TABLE                                   RETURN_TOKEN(TABLE);

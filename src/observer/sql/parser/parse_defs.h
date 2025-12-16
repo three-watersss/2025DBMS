@@ -79,6 +79,27 @@ struct ConditionSqlNode
 };
 
 /**
+ * @brief 描述排序的类型（升序/降序）
+ * @ingroup SQLParser
+ */
+enum OrderType
+{
+  ASC,   // asc
+  DESC,  // desc
+};
+
+/**
+ * @brief 表示一个排序语句
+ * @ingroup SQLParser
+ * @details select 语句中的 order by。包含列名和排序类型。
+ */
+struct OrderSqlNode
+{
+  RelAttrSqlNode attribute;
+  OrderType      type;
+};
+
+/**
  * @brief 描述一个select语句
  * @ingroup SQLParser
  * @details 一个正常的select语句描述起来比这个要复杂很多，这里做了简化。
@@ -95,6 +116,7 @@ struct SelectSqlNode
   vector<string>                 relations;    ///< 查询的表
   vector<ConditionSqlNode>       conditions;   ///< 查询条件，使用AND串联起来多个条件
   vector<unique_ptr<Expression>> group_by;     ///< group by clause
+  vector<OrderSqlNode>           order_by;     ///< order by clause
 };
 
 /**
