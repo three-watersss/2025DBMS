@@ -177,3 +177,13 @@ SELECT * FROM Update_table_1;
 UPDATE Update_table_1 SET col1=0;
 SELECT * FROM Update_table_1;
 ```
+
+
+- insert 
+```bash
+CREATE TABLE insert_table(id int, t_name char, col1 int, col2 int);
+INSERT INTO insert_table VALUES (1,'N1',1,1);
+INSERT INTO insert_table VALUES (2,'N2',1,1),(3,'N3',2,1);
+INSERT INTO insert_table VALUES (4,'N4',1,1),(1,1,1,1);
+SELECT * FROM insert_table;
+```

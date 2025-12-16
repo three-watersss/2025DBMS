@@ -111,10 +111,12 @@ struct CalcSqlNode
  * @ingroup SQLParser
  * @details 于Selects类似，也做了很多简化
  */
+typedef vector<Value> InsertTuple;
 struct InsertSqlNode
 {
-  string        relation_name;  ///< Relation to insert into
-  vector<Value> values;         ///< 要插入的值
+  string              relation_name;  ///< Relation to insert into
+  vector<Value>       values;         ///< 要插入的值
+  vector<InsertTuple> tuples;         // 要插入的值列表
 };
 
 /**

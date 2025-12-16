@@ -11,7 +11,6 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by WangYunlai on 2021/6/9.
 //
-
 #include "sql/operator/insert_physical_operator.h"
 #include "sql/stmt/insert_stmt.h"
 #include "storage/table/table.h"
@@ -19,24 +18,32 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
-InsertPhysicalOperator::InsertPhysicalOperator(Table *table, vector<Value> &&values)
-    : table_(table), values_(std::move(values))
+InsertPhysicalOperator::InsertPhysicalOperator(Table *table, vector<InsertTuple> &&tuples)
+    : table_(table), tuples_(tuples)
 {}
 
 RC InsertPhysicalOperator::open(Trx *trx)
 {
-  Record record;
-  RC     rc = table_->make_record(static_cast<int>(values_.size()), values_.data(), record);
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to make record. rc=%s", strrc(rc));
-    return rc;
-  }
 
-  rc = trx->insert_record(table_, record);
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to insert record by transaction. rc=%s", strrc(rc));
+  std::vector<Record *> inserted_record;
+  for (auto value : tuples_) {
+    Record record;
+    RC     rc = table_->make_record(static_cast<int>(value.size()), value.data(), record);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to make record. rc=%s", strrc(rc));
+      return rc;
+    }
+    rc = trx->insert_record(table_, record);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to insert record by transaction. rc=%s", strrc(rc));
+      for (Record *rec : inserted_record) {
+        trx->delete_record(table_, *rec);
+      }
+      return rc;
+    }
+    inserted_record.emplace_back(new Record(record));
   }
-  return rc;
+  return RC::SUCCESS;
 }
 
 RC InsertPhysicalOperator::next() { return RC::RECORD_EOF; }

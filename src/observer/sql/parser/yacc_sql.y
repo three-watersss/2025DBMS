@@ -144,6 +144,8 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   char *                                     cstring;
   int                                        number;
   float                                      floats;
+  InsertTuple *                        insert_tuple;
+  vector<InsertTuple> *           insert_tuple_list;
 }
 
 %destructor { delete $$; } <condition>
@@ -211,6 +213,8 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <sql_node>            command_wrapper
 // commands should be a list but I use a single command instead
 %type <sql_node>            commands
+%type <insert_tuple>           insert_tuple
+%type <insert_tuple_list>      insert_tuple_list
 
 %left '+' '-'
 %left '*' '/'
@@ -462,29 +466,81 @@ attr_list:
     }
     ;
 
-insert_stmt:        /*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value_list RBRACE 
+/* 插入语句解析 */
+insert_stmt:
+    INSERT INTO ID VALUES insert_tuple insert_tuple_list
     {
-      $$ = new ParsedSqlNode(SCF_INSERT);
-      $$->insertion.relation_name = $3;
-      $$->insertion.values.swap(*$6);
-      delete $6;
+        // 创建 ParsedSqlNode
+        $$ = new ParsedSqlNode(SCF_INSERT);
+
+        // 直接使用 std::string 拷贝
+        $$->insertion.relation_name = std::string($3);
+
+        // 插入 tuple
+        if ($6 != nullptr) {
+            $$->insertion.tuples.swap(*$6);
+            delete $6; // 只删除 vector 容器，不删除内部元素
+        }
+
+        $$->insertion.tuples.emplace_back(*$5);
+        delete $5;
+
+        // 旧代码的 reverse 可以保留
+        std::reverse($$->insertion.tuples.begin(), $$->insertion.tuples.end());
+
+        // 不再手动 free $3
+        // free($3); // 移除
     }
-    ;
+;
+
+/* tuple 列表 */
+insert_tuple_list:
+      /* empty */
+    { $$ = nullptr; }
+    | COMMA insert_tuple insert_tuple_list
+    { 
+        if ($3 != nullptr) {
+            $$ = $3;
+        } else {
+            $$ = new std::vector<InsertTuple>;
+        }
+
+        $$->emplace_back(*$2);
+        delete $2;
+    }
+;
+
+/* 单个 tuple */
+insert_tuple:
+    LBRACE value value_list RBRACE
+    {
+        $$ = new InsertTuple;
+
+        if ($3 != nullptr) {
+            $$->swap(*$3);
+            delete $3;
+        }
+
+        $$->insert($$->begin(), *$2); // 将 value 插入开头
+        delete $2;
+    }
+;
 
 value_list:
-    value
+      /* empty */
+    { $$ = nullptr; }
+    | COMMA value value_list
     {
-      $$ = new vector<Value>;
-      $$->emplace_back(*$1);
-      delete $1;
+        if ($3 != nullptr) {
+            $$ = $3;
+        } else {
+            $$ = new std::vector<Value>;
+        }
+
+        $$->insert($$->begin(), *$2); // value 放在开头
+        delete $2;
     }
-    | value_list COMMA value { 
-      $$ = $1;
-      $$->emplace_back(*$3);
-      delete $3;
-    }
-    ;
+;
 value:
     NUMBER {
       $$ = new Value((int)$1);
