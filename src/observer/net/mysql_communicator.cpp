@@ -952,6 +952,19 @@ RC MysqlCommunicator::send_result_rows(SessionEvent *event, SqlResult *sql_resul
     rc = write_tuple_result(sql_result, packet, affected_rows, need_disconnect);
   }
 
+  if (rc != RC::SUCCESS) {
+    ErrPacket err_packet;
+    err_packet.packet_header.sequence_id = sequence_id_++;
+    err_packet.error_code                = static_cast<int>(rc);
+    err_packet.error_message             = strrc(rc);
+    RC send_rc                           = send_packet(err_packet);
+    if (send_rc == RC::SUCCESS) {
+      need_disconnect = false;
+      return RC::SUCCESS;
+    }
+    return send_rc;
+  }
+
   // 所有行发送完成后，发送一个EOF或OK包
   if ((client_capabilities_flag_ & CLIENT_DEPRECATE_EOF) || no_column_def) {
     LOG_TRACE("client has CLIENT_DEPRECATE_EOF or has empty column, send ok packet");

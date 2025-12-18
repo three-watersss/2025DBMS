@@ -40,7 +40,7 @@ RC SubQueryExpr::get_value(const Tuple &tuple, Value &value) const
     value = result_set_[0];
   } else {
     LOG_WARN("SubQueryExpr returned multiple rows in scalar context");
-    return RC::INTERNAL; 
+    return RC::INVALID_ARGUMENT; 
   }
   return RC::SUCCESS;
 }
