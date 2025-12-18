@@ -25,6 +25,13 @@ RC TableScanPhysicalOperator::open(Trx *trx)
     tuple_.set_schema(table_, table_->table_meta().field_metas());
   }
   trx_ = trx;
+
+  for (auto &expr : predicates_) {
+    rc = expr->init(trx);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
   return rc;
 }
 

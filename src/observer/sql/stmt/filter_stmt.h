@@ -23,23 +23,35 @@ See the Mulan PSL v2 for more details. */
 class Db;
 class Table;
 class FieldMeta;
+class SelectStmt;
 
 struct FilterObj
 {
   bool  is_attr;
   Field field;
   Value value;
+  bool is_sub_query = false;
+  SelectStmt *sub_query = nullptr;
 
   void init_attr(const Field &field)
   {
     is_attr     = true;
+    is_sub_query = false;
     this->field = field;
   }
 
   void init_value(const Value &value)
   {
     is_attr     = false;
+    is_sub_query = false;
     this->value = value;
+  }
+
+  void init_sub_query(SelectStmt *stmt)
+  {
+    is_attr = false;
+    is_sub_query = true;
+    this->sub_query = stmt;
   }
 };
 

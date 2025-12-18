@@ -53,9 +53,13 @@ enum CompOp
   GREAT_THAN,   ///< ">"
   CompOp_IS,           ///< is null
   CompOp_IS_NOT,        ///< is not null
+  CompOp_IN,            ///< IN
+  CompOp_NOT_IN,        ///< NOT IN
   NO_OP
   
 };
+
+struct SelectSqlNode;
 
 /**
  * @brief 表示一个条件比较
@@ -76,6 +80,8 @@ struct ConditionSqlNode
                                  ///< 1时，操作符右边是属性名，0时，是属性值
   RelAttrSqlNode right_attr;     ///< right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value          right_value;    ///< right-hand side value if right_is_attr = FALSE
+  std::shared_ptr<SelectSqlNode> right_sub_query; ///< right-hand side sub-query
+  std::shared_ptr<SelectSqlNode> left_sub_query;  ///< left-hand side sub-query
 };
 
 struct JoinSqlNode

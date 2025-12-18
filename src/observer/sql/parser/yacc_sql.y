@@ -103,6 +103,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         EXIT
         DOT //QUOTE
         INTO
+        IN
         VALUES
         FROM
         WHERE
@@ -888,6 +889,120 @@ condition:
 
       delete $1;
       delete $3;
+    }
+    | rel_attr IN LBRACE select_stmt RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->comp = CompOp_IN;
+      
+      ParsedSqlNode *node = $4;
+      auto select_node = std::make_shared<SelectSqlNode>();
+      select_node->expressions = std::move(node->selection.expressions);
+      select_node->relations = std::move(node->selection.relations);
+      select_node->conditions = std::move(node->selection.conditions);
+      select_node->group_by = std::move(node->selection.group_by);
+      select_node->order_by = std::move(node->selection.order_by);
+      $$->right_sub_query = select_node;
+
+      delete $1;
+      delete $4;
+    }
+    | rel_attr NOT IN LBRACE select_stmt RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->comp = CompOp_NOT_IN;
+      
+      ParsedSqlNode *node = $5;
+      auto select_node = std::make_shared<SelectSqlNode>();
+      select_node->expressions = std::move(node->selection.expressions);
+      select_node->relations = std::move(node->selection.relations);
+      select_node->conditions = std::move(node->selection.conditions);
+      select_node->group_by = std::move(node->selection.group_by);
+      select_node->order_by = std::move(node->selection.order_by);
+      $$->right_sub_query = select_node;
+
+      delete $1;
+      delete $5;
+    }
+    | rel_attr comp_op LBRACE select_stmt RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->comp = $2;
+      
+      ParsedSqlNode *node = $4;
+      auto select_node = std::make_shared<SelectSqlNode>();
+      select_node->expressions = std::move(node->selection.expressions);
+      select_node->relations = std::move(node->selection.relations);
+      select_node->conditions = std::move(node->selection.conditions);
+      select_node->group_by = std::move(node->selection.group_by);
+      select_node->order_by = std::move(node->selection.order_by);
+      $$->right_sub_query = select_node;
+
+      delete $1;
+      delete $4;
+    }
+    | value comp_op LBRACE select_stmt RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->comp = $2;
+      
+      ParsedSqlNode *node = $4;
+      auto select_node = std::make_shared<SelectSqlNode>();
+      select_node->expressions = std::move(node->selection.expressions);
+      select_node->relations = std::move(node->selection.relations);
+      select_node->conditions = std::move(node->selection.conditions);
+      select_node->group_by = std::move(node->selection.group_by);
+      select_node->order_by = std::move(node->selection.order_by);
+      $$->right_sub_query = select_node;
+
+      delete $1;
+      delete $4;
+    }
+    | LBRACE select_stmt RBRACE comp_op rel_attr
+    {
+      $$ = new ConditionSqlNode;
+      $$->right_is_attr = 1;
+      $$->right_attr = *$5;
+      $$->comp = $4;
+      
+      ParsedSqlNode *node = $2;
+      auto select_node = std::make_shared<SelectSqlNode>();
+      select_node->expressions = std::move(node->selection.expressions);
+      select_node->relations = std::move(node->selection.relations);
+      select_node->conditions = std::move(node->selection.conditions);
+      select_node->group_by = std::move(node->selection.group_by);
+      select_node->order_by = std::move(node->selection.order_by);
+      $$->left_sub_query = select_node;
+
+      delete $2;
+      delete $5;
+    }
+    | LBRACE select_stmt RBRACE comp_op value
+    {
+      $$ = new ConditionSqlNode;
+      $$->right_is_attr = 0;
+      $$->right_value = *$5;
+      $$->comp = $4;
+      
+      ParsedSqlNode *node = $2;
+      auto select_node = std::make_shared<SelectSqlNode>();
+      select_node->expressions = std::move(node->selection.expressions);
+      select_node->relations = std::move(node->selection.relations);
+      select_node->conditions = std::move(node->selection.conditions);
+      select_node->group_by = std::move(node->selection.group_by);
+      select_node->order_by = std::move(node->selection.order_by);
+      $$->left_sub_query = select_node;
+
+      delete $2;
+      delete $5;
     }
     ;
 

@@ -47,7 +47,10 @@ enum class ExprType
   CONJUNCTION,  ///< 多个表达式使用同一种关系(AND或OR)来联结
   ARITHMETIC,   ///< 算术运算
   AGGREGATION,  ///< 聚合运算
+  SUB_QUERY,    ///< 子查询
 };
+
+class Trx;
 
 /**
  * @brief 表达式的抽象描述
@@ -73,6 +76,11 @@ public:
    * @brief 复制表达式
    */
   virtual unique_ptr<Expression> copy() const = 0;
+
+  /**
+   * @brief 初始化表达式，主要用于子查询执行
+   */
+  virtual RC init(Trx *trx) { return RC::SUCCESS; }
 
   /**
    * @brief 判断两个表达式是否相等
@@ -304,6 +312,7 @@ public:
 
   ExprType type() const override { return ExprType::COMPARISON; }
   RC       get_value(const Tuple &tuple, Value &value) const override;
+  RC       init(Trx *trx) override;
   AttrType value_type() const override { return AttrType::BOOLEANS; }
   CompOp   comp() const { return comp_; }
 
@@ -373,6 +382,7 @@ public:
   ExprType type() const override { return ExprType::CONJUNCTION; }
   AttrType value_type() const override { return AttrType::BOOLEANS; }
   RC       get_value(const Tuple &tuple, Value &value) const override;
+  RC       init(Trx *trx) override;
 
   Type conjunction_type() const { return conjunction_type_; }
 

@@ -38,6 +38,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/order_by_logical_operator.h"
 #include "sql/stmt/order_stmt.h"
 #include "sql/expr/expression_iterator.h"
+#include "sql/expr/sub_query_expr.h"
 
 using namespace std;
 using namespace common;
@@ -201,13 +202,29 @@ RC LogicalPlanGenerator::create_plan(FilterStmt *filter_stmt, unique_ptr<Logical
     const FilterObj &filter_obj_left  = filter_unit->left();
     const FilterObj &filter_obj_right = filter_unit->right();
 
-    unique_ptr<Expression> left(filter_obj_left.is_attr
+    unique_ptr<Expression> left;
+    if (filter_obj_left.is_sub_query) {
+       unique_ptr<LogicalOperator> sub_plan;
+       rc = create_plan(filter_obj_left.sub_query, sub_plan);
+       if (rc != RC::SUCCESS) return rc;
+       left = make_unique<SubQueryExpr>(std::move(sub_plan));
+    } else {
+       left.reset(filter_obj_left.is_attr
                                     ? static_cast<Expression *>(new FieldExpr(filter_obj_left.field))
                                     : static_cast<Expression *>(new ValueExpr(filter_obj_left.value)));
+    }
 
-    unique_ptr<Expression> right(filter_obj_right.is_attr
+    unique_ptr<Expression> right;
+    if (filter_obj_right.is_sub_query) {
+       unique_ptr<LogicalOperator> sub_plan;
+       rc = create_plan(filter_obj_right.sub_query, sub_plan);
+       if (rc != RC::SUCCESS) return rc;
+       right = make_unique<SubQueryExpr>(std::move(sub_plan));
+    } else {
+       right.reset(filter_obj_right.is_attr
                                      ? static_cast<Expression *>(new FieldExpr(filter_obj_right.field))
                                      : static_cast<Expression *>(new ValueExpr(filter_obj_right.value)));
+    }
     bool null_exist = left->is_null() || right->is_null();
     // 对于 IS / IS NOT NULL 或任一端为 NULL，不做类型强转，直接用 NULL 判定
     if (!null_exist && left->value_type() != right->value_type()) {

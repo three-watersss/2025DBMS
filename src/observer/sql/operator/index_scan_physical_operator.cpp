@@ -53,6 +53,13 @@ RC IndexScanPhysicalOperator::open(Trx *trx)
   tuple_.set_schema(table_, table_->table_meta().field_metas());
 
   trx_ = trx;
+
+  for (auto &expr : predicates_) {
+    RC rc = expr->init(trx);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
   return RC::SUCCESS;
 }
 

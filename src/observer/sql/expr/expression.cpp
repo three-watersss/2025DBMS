@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/expr/expression.h"
 #include "sql/expr/tuple.h"
 #include "sql/expr/arithmetic_operator.hpp"
+#include "sql/expr/sub_query_expr.h"
 
 using namespace std;
 
@@ -219,8 +220,35 @@ RC ComparisonExpr::try_get_value(Value &cell) const
   return RC::INVALID_ARGUMENT;
 }
 
+RC ComparisonExpr::init(Trx *trx)
+{
+  RC rc = left_->init(trx);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  return right_->init(trx);
+}
+
 RC ComparisonExpr::get_value(const Tuple &tuple, Value &value) const
 {
+  if (comp_ == CompOp_IN || comp_ == CompOp_NOT_IN) {
+    if (right_->type() == ExprType::SUB_QUERY) {
+      Value left_value;
+      RC rc = left_->get_value(tuple, left_value);
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("failed to get value of left expression. rc=%s", strrc(rc));
+        return rc;
+      }
+      SubQueryExpr *sub = static_cast<SubQueryExpr*>(right_.get());
+      bool found = sub->check_in(left_value);
+      if (comp_ == CompOp_NOT_IN) {
+        found = !found;
+      }
+      value.set_boolean(found);
+      return RC::SUCCESS;
+    }
+  }
+
   Value left_value;
   Value right_value;
 
@@ -317,6 +345,17 @@ RC ComparisonExpr::compare_column(const Column &left, const Column &right, vecto
 ConjunctionExpr::ConjunctionExpr(Type type, vector<unique_ptr<Expression>> &children)
     : conjunction_type_(type), children_(std::move(children))
 {}
+
+RC ConjunctionExpr::init(Trx *trx)
+{
+  for (auto &child : children_) {
+    RC rc = child->init(trx);
+    if (rc != RC::SUCCESS) {
+      return rc;
+    }
+  }
+  return RC::SUCCESS;
+}
 
 RC ConjunctionExpr::get_value(const Tuple &tuple, Value &value) const
 {
