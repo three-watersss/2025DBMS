@@ -37,6 +37,7 @@ private:
   RC write_state(SessionEvent *event, bool &need_disconnect);
   RC write_debug(SessionEvent *event, bool &need_disconnect);
   RC write_result_internal(SessionEvent *event, bool &need_disconnect);
+  RC write_header(SqlResult *sql_result);
   RC write_tuple_result(SqlResult *sql_result);
   RC write_chunk_result(SqlResult *sql_result);
 

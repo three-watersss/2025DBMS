@@ -200,42 +200,6 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
   const TupleSchema &schema   = sql_result->tuple_schema();
   const int          cell_num = schema.cell_num();
 
-  for (int i = 0; i < cell_num; i++) {
-    const TupleCellSpec &spec  = schema.cell_at(i);
-    const char          *alias = spec.alias();
-    if (nullptr != alias || alias[0] != 0) {
-      if (0 != i) {
-        const char *delim = " | ";
-
-        rc = writer_->writen(delim, strlen(delim));
-        if (OB_FAIL(rc)) {
-          LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-          return rc;
-        }
-      }
-
-      int len = strlen(alias);
-
-      rc = writer_->writen(alias, len);
-      if (OB_FAIL(rc)) {
-        LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-        sql_result->close();
-        return rc;
-      }
-    }
-  }
-
-  if (cell_num > 0) {
-    char newline = '\n';
-
-    rc = writer_->writen(&newline, 1);
-    if (OB_FAIL(rc)) {
-      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
-      sql_result->close();
-      return rc;
-    }
-  }
-
   rc = RC::SUCCESS;
   if (event->session()->get_execution_mode() == ExecutionMode::CHUNK_ITERATOR
       && event->session()->used_chunk_mode()) {
@@ -272,11 +236,62 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
   return rc;
 }
 
+RC PlainCommunicator::write_header(SqlResult *sql_result)
+{
+  RC rc = RC::SUCCESS;
+  const TupleSchema &schema   = sql_result->tuple_schema();
+  const int          cell_num = schema.cell_num();
+
+  for (int i = 0; i < cell_num; i++) {
+    const TupleCellSpec &spec  = schema.cell_at(i);
+    const char          *alias = spec.alias();
+    if (nullptr != alias || alias[0] != 0) {
+      if (0 != i) {
+        const char *delim = " | ";
+
+        rc = writer_->writen(delim, strlen(delim));
+        if (OB_FAIL(rc)) {
+          LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+          return rc;
+        }
+      }
+
+      int len = strlen(alias);
+
+      rc = writer_->writen(alias, len);
+      if (OB_FAIL(rc)) {
+        LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+        return rc;
+      }
+    }
+  }
+
+  if (cell_num > 0) {
+    char newline = '\n';
+
+    rc = writer_->writen(&newline, 1);
+    if (OB_FAIL(rc)) {
+      LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+      return rc;
+    }
+  }
+  return rc;
+}
+
 RC PlainCommunicator::write_tuple_result(SqlResult *sql_result)
 {
   RC rc = RC::SUCCESS;
   Tuple *tuple = nullptr;
+  bool header_printed = false;
   while (RC::SUCCESS == (rc = sql_result->next_tuple(tuple))) {
+    if (!header_printed) {
+      rc = write_header(sql_result);
+      if (OB_FAIL(rc)) {
+        sql_result->close();
+        return rc;
+      }
+      header_printed = true;
+    }
     assert(tuple != nullptr);
 
     int cell_num = tuple->cell_num();
@@ -321,6 +336,13 @@ RC PlainCommunicator::write_tuple_result(SqlResult *sql_result)
   }
 
   if (rc == RC::RECORD_EOF) {
+    if (!header_printed) {
+      rc = write_header(sql_result);
+      if (OB_FAIL(rc)) {
+        sql_result->close();
+        return rc;
+      }
+    }
     rc = RC::SUCCESS;
   }
   return rc;
@@ -330,7 +352,16 @@ RC PlainCommunicator::write_chunk_result(SqlResult *sql_result)
 {
   RC rc = RC::SUCCESS;
   Chunk chunk;
+  bool header_printed = false;
   while (RC::SUCCESS == (rc = sql_result->next_chunk(chunk))) {
+    if (!header_printed) {
+      rc = write_header(sql_result);
+      if (OB_FAIL(rc)) {
+        sql_result->close();
+        return rc;
+      }
+      header_printed = true;
+    }
     int col_num = chunk.column_num();
     for (int row_idx = 0; row_idx < chunk.rows(); row_idx++) {
       for (int col_idx = 0; col_idx < col_num; col_idx++) {
@@ -369,6 +400,13 @@ RC PlainCommunicator::write_chunk_result(SqlResult *sql_result)
   }
 
   if (rc == RC::RECORD_EOF) {
+    if (!header_printed) {
+      rc = write_header(sql_result);
+      if (OB_FAIL(rc)) {
+        sql_result->close();
+        return rc;
+      }
+    }
     rc = RC::SUCCESS;
   }
   return rc;
