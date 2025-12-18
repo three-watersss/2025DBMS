@@ -207,6 +207,7 @@ void Value::set_string(const char *s, int len,bool is_null /*= 0*/)
 
 void Value::set_null_value()  // 设置 value 为 NULL 时 value_ 中的值（要设置成一些正常用户不会输入的值）
 {
+  is_null_ = true;
   switch (attr_type_) {
     case AttrType::TEXTS:
     case AttrType::CHARS: {
