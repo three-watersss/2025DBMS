@@ -78,6 +78,12 @@ struct ConditionSqlNode
   Value          right_value;    ///< right-hand side value if right_is_attr = FALSE
 };
 
+struct JoinSqlNode
+{
+  std::string                   relation;    // join的表
+  std::vector<ConditionSqlNode> conditions;  // on的条件
+};
+
 /**
  * @brief 描述排序的类型（升序/降序）
  * @ingroup SQLParser

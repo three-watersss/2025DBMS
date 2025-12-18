@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 
 #include "common/log/log.h"
 #include "common/lang/string.h"
@@ -151,6 +152,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   OrderType                         order_type;
   OrderSqlNode *                    order_node;
   std::vector<OrderSqlNode> *       order_list;
+  std::vector<JoinSqlNode> *        join_list;
 }
 
 %destructor { delete $$; } <condition>
@@ -169,6 +171,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %token <floats> FLOAT
 %token <cstring> ID
 %token <cstring> SSS
+%token INNER_JOIN
 //非终结符
 
 /** type 定义了各种解析后的结果输出的是什么类型。类型对应了 union 中的定义的成员变量名称 **/
@@ -188,6 +191,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <key_list>            primary_key
 %type <key_list>            attr_list
 %type <relation_list>       rel_list
+%type <join_list>           join_list
 %type <expression>          expression
 %type <expression>          aggregate_expression
 %type <expression_list>     expression_list
@@ -590,7 +594,7 @@ update_stmt:      /*  update 语句的语法解析树*/
     }
     ;
 select_stmt:        /*  select 语句的语法解析树*/
-    SELECT expression_list FROM rel_list where order_by group_by
+    SELECT expression_list FROM rel_list join_list where order_by group_by
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
@@ -603,19 +607,34 @@ select_stmt:        /*  select 语句的语法解析树*/
         delete $4;
       }
 
+      // join
       if ($5 != nullptr) {
-        $$->selection.conditions.swap(*$5);
+        /* 由于是递归顺序解析的join，需要 reverse */
+        std::reverse($5->begin(), $5->end());
+        for (auto &join : *$5) {
+          $$->selection.relations.push_back(join.relation);
+          for (auto &condition : join.conditions) {
+            $$->selection.conditions.emplace_back(std::move(condition));
+          }
+        }
         delete $5;
       }
 
       if ($6 != nullptr) {
-        $$->selection.order_by.swap(*$6);
+        for (auto &condition : *$6) {
+          $$->selection.conditions.emplace_back(std::move(condition));
+        }
         delete $6;
       }
 
       if ($7 != nullptr) {
-        $$->selection.group_by.swap(*$7);
+        $$->selection.order_by.swap(*$7);
         delete $7;
+      }
+
+      if ($8 != nullptr) {
+        $$->selection.group_by.swap(*$8);
+        delete $8;
       }
     }
     ;
@@ -725,6 +744,30 @@ rel_list:
       }
 
       $$->insert($$->begin(), $1);
+    }
+    ;
+
+join_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | INNER_JOIN ID ON condition_list join_list {
+      if ($5 != nullptr) {
+        $$ = $5;
+      } else {
+        $$ = new std::vector<JoinSqlNode>;
+      }
+      JoinSqlNode join;
+      join.relation = $2;
+      if($4 != nullptr) {
+        std::reverse($4->begin(), $4->end());
+        for (auto &condition : *$4) {
+          join.conditions.emplace_back(std::move(condition));
+        }
+        delete $4;
+      }
+      $$->emplace_back(std::move(join));
     }
     ;
 
